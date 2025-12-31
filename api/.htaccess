@@ -1,0 +1,36 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Handle CORS preflight
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+    
+    # Health check
+    RewriteRule ^health$ health.php [L]
+    
+    # Auth endpoints
+    RewriteRule ^auth/login$ auth/login.php [L]
+    RewriteRule ^auth/logout$ auth/logout.php [L]
+    RewriteRule ^auth/verify$ auth/verify.php [L]
+    
+    # Buildings
+    RewriteRule ^buildings$ buildings/index.php [L]
+    RewriteRule ^buildings/([a-z0-9_]+)$ buildings/detail.php [L]
+    
+    # Controls
+    RewriteRule ^controls$ controls/index.php [L]
+    RewriteRule ^controls/stats$ controls/stats.php [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# PHP settings
+php_flag display_errors Off
+php_value max_execution_time 300
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
