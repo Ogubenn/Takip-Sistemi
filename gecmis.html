@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Geçmiş Kayıtlar - Bulancak Atıksu Arıtma Tesisi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .history-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .filters {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .records-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .record-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .record-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .record-title {
+            font-size: 1.3em;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .record-date {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .record-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .completion-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .completion-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        .record-notes {
+            background: #fff9e6;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            margin-top: 10px;
+        }
+
+        .record-notes h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1em;
+        }
+
+        .record-notes p {
+            margin: 0;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-records-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .detail-list {
+            margin-top: 15px;
+        }
+
+        .detail-item {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }
+
+        .detail-item.checked {
+            color: #28a745;
+        }
+
+        .detail-item.unchecked {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container history-container">
+        <header>
+            <div class="header-logo">
+                <img src="assets/images/logo.jpg" alt="Bulancak Belediyesi" class="logo">
+            </div>
+            <h1>📅 Geçmiş Kayıtlar</h1>
+            <h2>Önceki Günlerin Kontrol Kayıtları</h2>
+        </header>
+
+        <main style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+            <div class="filters">
+                <h3 style="color: #667eea; margin-bottom: 20px;">🔍 Filtrele</h3>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Bina Seçin:</label>
+                        <select id="buildingFilter" onchange="filterRecords()">
+                            <option value="all">Tüm Binalar</option>
+                            <option value="giris">🏢 Giriş Binası</option>
+                            <option value="pompaj">⚙️ Pompaj İstasyonu</option>
+                            <option value="aritma">💧 Arıtma Ünitesi</option>
+                            <option value="jenerator">🔌 Jeneratör Binası</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Başlangıç Tarihi:</label>
+                        <input type="date" id="startDate" onchange="filterRecords()">
+                    </div>
+                    <div class="filter-group">
+                        <label>Bitiş Tarihi:</label>
+                        <input type="date" id="endDate" onchange="filterRecords()">
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="resetFilters()">🔄 Filtreleri Sıfırla</button>
+                </div>
+            </div>
+
+            <div id="recordsContainer" class="records-grid">
+                <!-- Kayıtlar JavaScript ile yüklenecek -->
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                    ← Ana Sayfaya Dön
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        let allRecords = [];
+
+        // Sayfa yüklendiğinde
+        window.onload = function() {
+            // Varsayılan tarih aralığı: Son 30 gün
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            loadAllRecords();
+        };
+
+        // Tüm kayıtları yükle
+        function loadAllRecords() {
+            const buildings = {
+                giris: '🏢 Giriş Binası',
+                pompaj: '⚙️ Pompaj İstasyonu',
+                aritma: '💧 Arıtma Ünitesi',
+                jenerator: '🔌 Jeneratör Binası'
+            };
+
+            allRecords = [];
+
+            Object.keys(buildings).forEach(buildingId => {
+                const controls = getAllControls(buildingId);
+                controls.forEach(control => {
+                    if (control.data) {
+                        allRecords.push({
+                            buildingId: buildingId,
+                            buildingName: buildings[buildingId],
+                            ...control
+                        });
+                    }
+                });
+            });
+
+            // Tarihe göre sırala (yeniden eskiye)
+            allRecords.sort((a, b) => b.date.localeCompare(a.date));
+
+            filterRecords();
+        }
+
+        // Kayıtları filtrele ve göster
+        function filterRecords() {
+            const buildingFilter = document.getElementById('buildingFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            let filtered = allRecords;
+
+            // Bina filtresi
+            if (buildingFilter !== 'all') {
+                filtered = filtered.filter(r => r.buildingId === buildingFilter);
+            }
+
+            // Tarih filtresi
+            if (startDate) {
+                filtered = filtered.filter(r => r.date >= startDate);
+            }
+            if (endDate) {
+                filtered = filtered.filter(r => r.date <= endDate);
+            }
+
+            displayRecords(filtered);
+        }
+
+        // Kayıtları göster
+        function displayRecords(records) {
+            const container = document.getElementById('recordsContainer');
+
+            if (records.length === 0) {
+                container.innerHTML = `
+                    <div class="no-records">
+                        <div class="no-records-icon">📭</div>
+                        <h3>Kayıt Bulunamadı</h3>
+                        <p>Seçilen kriterlere uygun kayıt bulunmamaktadır.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            records.forEach(record => {
+                const card = createRecordCard(record);
+                container.appendChild(card);
+            });
+        }
+
+        // Kayıt kartı oluştur
+        function createRecordCard(record) {
+            const card = document.createElement('div');
+            card.className = 'record-card';
+
+            const data = record.data;
+            const completionRate = data.completionRate || 0;
+
+            card.innerHTML = `
+                <div class="record-header">
+                    <div class="record-title">${record.buildingName}</div>
+                    <div class="record-date">📅 ${formatDate(record.date)}</div>
+                </div>
+
+                <div class="record-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Tamamlanan:</span>
+                        <span class="stat-value">${data.checkedCount || 0}/${data.totalCount || 0}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tamamlanma:</span>
+                        <span class="stat-value">%${completionRate}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Saat:</span>
+                        <span class="stat-value">${new Date(data.savedAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</span>
+                    </div>
+                    ${data.completedBy ? `
+                    <div class="stat-item">
+                        <span class="stat-label">👤 Kontrol Eden:</span>
+                        <span class="stat-value">${data.completedBy}</span>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="completion-bar">
+                    <div class="completion-fill" style="width: ${completionRate}%"></div>
+                </div>
+
+                <div class="detail-list">
+                    ${data.checkedItems.map(item => `
+                        <div class="detail-item ${item.checked ? 'checked' : 'unchecked'}">
+                            ${item.checked ? '✓' : '✗'} ${item.label}
+                        </div>
+                    `).join('')}
+                </div>
+
+                ${data.notes ? `
+                    <div class="record-notes">
+                        <h4>📝 Notlar:</h4>
+                        <p>${data.notes}</p>
+                    </div>
+                ` : ''}
+            `;
+
+            return card;
+        }
+
+        // Filtreleri sıfırla
+        function resetFilters() {
+            document.getElementById('buildingFilter').value = 'all';
+            
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            filterRecords();
+        }
+    </script>
+</body>
+</html>

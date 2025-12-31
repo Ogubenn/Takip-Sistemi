@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>QR Kod Oluşturucu - Bulancak Atıksu Arıtma Tesisi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        .qr-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .qr-box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .qr-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px auto;
+            display: inline-block;
+        }
+        
+        .qr-url {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            word-break: break-all;
+            font-size: 0.85em;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        
+        .print-btn {
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        .print-btn:hover {
+            background: #5568d3;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .no-print {
+                display: none;
+            }
+            .qr-box {
+                page-break-inside: avoid;
+                border: 2px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="no-print">
+            <div class="header-logo">
+                <img src="assets/images/logo.jpg" alt="Bulancak Belediyesi" class="logo">
+            </div>
+            <h1>📱 QR Kod Oluşturucu</h1>
+            <h2>Binalar için QR Kodlar</h2>
+        </header>
+
+        <div class="qr-container">
+            <div class="no-print">
+                <h3>Aşağıdaki QR kodları yazdırıp bina girişlerine yerleştirebilirsiniz</h3>
+                <p style="color: #666; margin-top: 10px;">
+                    QR kodu okutulduğunda ilgili bina kontrol sayfası açılacaktır.
+                </p>
+                <button class="btn btn-primary" onclick="window.print()" style="margin: 20px 0;">
+                    🖨️ Tüm QR Kodları Yazdır
+                </button>
+            </div>
+
+            <div class="qr-grid" id="qrGrid">
+                <!-- QR kodlar JavaScript ile oluşturulacak -->
+            </div>
+
+            <div class="no-print" style="margin-top: 30px;">
+                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                    ← Ana Sayfaya Dön
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bina bilgileri
+        const buildings = {
+            giris: { name: "🏢 Giriş Binası", icon: "🏢" },
+            pompaj: { name: "⚙️ Pompaj İstasyonu", icon: "⚙️" },
+            aritma: { name: "💧 Arıtma Ünitesi", icon: "💧" },
+            jenerator: { name: "🔌 Jeneratör Binası", icon: "🔌" }
+        };
+
+        // Sayfa yüklendiğinde QR kodları oluştur
+        window.onload = function() {
+            const qrGrid = document.getElementById('qrGrid');
+            const baseUrl = window.location.origin + window.location.pathname.replace('qr-kodlar.html', '');
+
+            Object.keys(buildings).forEach(buildingId => {
+                const building = buildings[buildingId];
+                const url = `${baseUrl}kontrol.html?bina=${buildingId}`;
+
+                // QR box oluştur
+                const qrBox = document.createElement('div');
+                qrBox.className = 'qr-box';
+                qrBox.innerHTML = `
+                    <h3>${building.name}</h3>
+                    <div class="qr-code" id="qr-${buildingId}"></div>
+                    <div class="qr-url">${url}</div>
+                    <button class="print-btn no-print" onclick="printSingle('${buildingId}')">
+                        🖨️ Bu QR Kodu Yazdır
+                    </button>
+                `;
+                qrGrid.appendChild(qrBox);
+
+                // QR kod oluştur
+                QRCode.toCanvas(
+                    document.createElement('canvas'),
+                    url,
+                    { 
+                        width: 200,
+                        margin: 2,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    },
+                    function(error, canvas) {
+                        if (error) {
+                            console.error(error);
+                            return;
+                        }
+                        document.getElementById(`qr-${buildingId}`).appendChild(canvas);
+                    }
+                );
+            });
+        };
+
+        // Tek bir QR kodu yazdır
+        function printSingle(buildingId) {
+            const printWindow = window.open('', '_blank');
+            const building = buildings[buildingId];
+            const qrBox = document.getElementById(`qr-${buildingId}`).parentElement.cloneNode(true);
+            
+            // Print butonunu kaldır
+            const button = qrBox.querySelector('.print-btn');
+            if (button) button.remove();
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${building.name} - QR Kod</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                            margin: 0;
+                        }
+                        .qr-box {
+                            text-align: center;
+                            padding: 40px;
+                            border: 3px solid #667eea;
+                            border-radius: 10px;
+                        }
+                        h3 {
+                            color: #667eea;
+                            font-size: 2em;
+                            margin-bottom: 30px;
+                        }
+                        .qr-code {
+                            margin: 30px 0;
+                        }
+                        .qr-url {
+                            font-size: 0.9em;
+                            color: #666;
+                            margin-top: 20px;
+                            word-break: break-all;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${qrBox.outerHTML}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            window.onafterprint = function() {
+                                window.close();
+                            };
+                        };
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    </script>
+</body>
+</html>

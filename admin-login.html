@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Admin Girişi - Bulancak Atıksu Arıtma Tesisi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f2862 0%, #091f36 100%);
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 420px;
+            width: 90%;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        .login-header h1 {
+            color: #0f2862;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #9e363a;
+            box-shadow: 0 0 0 3px rgba(158, 54, 58, 0.1);
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .password-toggle input {
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+        }
+
+        .toggle-password:hover {
+            color: #9e363a;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            font-size: 0.9em;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #9e363a;
+        }
+
+        .forgot-password {
+            color: #9e363a;
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            opacity: 0.8;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #4f5f76 0%, #9e363a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(158, 54, 58, 0.3);
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(158, 54, 58, 0.4);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.9em;
+            border-left: 4px solid #c33;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: #9e363a;
+        }
+
+        .demo-credentials {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.85em;
+            color: #666;
+            border-left: 4px solid #4f5f76;
+        }
+
+        .demo-credentials strong {
+            color: #333;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .login-header h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <img src="assets/images/logo.jpg" alt="Bulancak Belediyesi" class="login-logo">
+            <h1>🔐 Admin Paneli</h1>
+            <p>Yönetim sistemine giriş yapın</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="username">👤 Kullanıcı Adı</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    placeholder="Kullanıcı adınızı girin"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔑 Şifre</label>
+                <div class="password-toggle">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Şifrenizi girin"
+                        autocomplete="current-password"
+                        required
+                    >
+                    <button type="button" class="toggle-password" onclick="togglePassword()">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <div class="remember-forgot">
+                <label class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Beni hatırla</span>
+                </label>
+                <a href="#" class="forgot-password" onclick="showForgotPassword(); return false;">
+                    Şifremi unuttum
+                </a>
+            </div>
+
+            <button type="submit" class="login-button">
+                🚀 Giriş Yap
+            </button>
+        </form>
+
+        <div class="demo-credentials">
+            <strong>📝 Demo Hesap:</strong><br>
+            Kullanıcı: <strong>admin</strong><br>
+            Şifre: <strong>admin123</strong>
+        </div>
+
+        <div class="back-link">
+            <a href="index.html">← Ana Sayfaya Dön</a>
+        </div>
+    </div>
+
+    <script>
+        // Varsayılan admin hesabını oluştur (ilk kurulumda)
+        function initializeAdmin() {
+            const users = localStorage.getItem('admin_users');
+            if (!users) {
+                const defaultAdmin = {
+                    id: 'admin-1',
+                    username: 'admin',
+                    password: btoa('admin123'), // Base64 encoding (basit şifreleme)
+                    fullName: 'Sistem Yöneticisi',
+                    email: 'admin@bulancak.bel.tr',
+                    role: 'admin',
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null
+                };
+                localStorage.setItem('admin_users', JSON.stringify([defaultAdmin]));
+            }
+        }
+
+        // Sayfa yüklendiğinde admin hesabını oluştur
+        initializeAdmin();
+
+        // Şifre göster/gizle
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = document.querySelector('.toggle-password');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        // Hata mesajı göster
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Login işlemi
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            // Kullanıcıları kontrol et
+            const users = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            const user = users.find(u => 
+                u.username === username && 
+                u.password === btoa(password)
+            );
+            
+            if (user) {
+                // Giriş başarılı
+                user.lastLogin = new Date().toISOString();
+                
+                // Kullanıcı bilgilerini güncelle
+                const userIndex = users.findIndex(u => u.id === user.id);
+                users[userIndex] = user;
+                localStorage.setItem('admin_users', JSON.stringify(users));
+                
+                // Session oluştur
+                const session = {
+                    userId: user.id,
+                    username: user.username,
+                    fullName: user.fullName,
+                    role: user.role,
+                    loginTime: new Date().toISOString(),
+                    rememberMe: rememberMe
+                };
+                
+                if (rememberMe) {
+                    localStorage.setItem('admin_session', JSON.stringify(session));
+                } else {
+                    sessionStorage.setItem('admin_session', JSON.stringify(session));
+                }
+                
+                // Admin panele yönlendir
+                window.location.href = 'admin.html';
+            } else {
+                // Giriş başarısız
+                showError('❌ Kullanıcı adı veya şifre hatalı!');
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            }
+        }
+
+        // Şifremi unuttum
+        function showForgotPassword() {
+            alert('🔐 Şifre sıfırlama özelliği yakında eklenecektir.\n\nDemo hesap bilgileri:\nKullanıcı: admin\nŞifre: admin123');
+        }
+
+        // Zaten giriş yapılmış mı kontrol et
+        window.onload = function() {
+            const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
+            if (session) {
+                // Zaten giriş yapılmış, admin panele yönlendir
+                window.location.href = 'admin.html';
+            }
+            
+            // Kullanıcı adı alanına focus
+            document.getElementById('username').focus();
+        };
+
+        // Enter tuşu ile form submit
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('password').focus();
+            }
+        });
+    </script>
+</body>
+</html>

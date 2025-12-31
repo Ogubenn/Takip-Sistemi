@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Bina Kontrolü - Bulancak Atıksu Arıtma Tesisi</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container control-page">
+        <header style="margin-bottom: 20px;">
+            <div class="header-logo">
+                <img src="assets/images/logo.jpg" alt="Bulancak Belediyesi" class="logo">
+            </div>
+            <h1 style="font-size: 1.5em; margin-bottom: 5px;">Bulancak Atıksu Arıtma Tesisi</h1>
+        </header>
+        <div class="control-header">
+            <div>
+                <h2 id="buildingName">Bina Kontrolü</h2>
+                <p id="buildingInfo">Günlük kontrol listesi</p>
+            </div>
+            <div class="date-time">
+                <p><strong>Tarih:</strong></p>
+                <p id="currentDateTime"></p>
+            </div>
+        </div>
+
+        <div id="successMessage" class="success-message">
+            ✓ Kontrol başarıyla kaydedildi!
+        </div>
+
+        <div id="alreadyDoneMessage" class="info-message" style="display: none;">
+            ℹ️ Bu binanın bugünkü kontrolü zaten yapılmış. İsterseniz güncelleyebilirsiniz.
+        </div>
+
+        <div class="checklist">
+            <h3>📋 Kontrol Listesi</h3>
+            <div id="checklistItems">
+                <!-- Kontrol maddeleri JavaScript ile yüklenecek -->
+            </div>
+        </div>
+
+        <div class="notes-section">
+            <h3>📝 Notlar ve Gözlemler</h3>
+            <textarea id="notes" placeholder="Varsa önemli notlar, gözlemler veya sorunları buraya yazın..."></textarea>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="saveControl()">💾 Kontrolü Kaydet</button>
+            <button class="btn btn-secondary" onclick="goBack()">← Ana Sayfaya Dön</button>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        // Session'dan kullanıcı bilgisini al
+        function getCurrentUser() {
+            const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
+            if (session) {
+                return JSON.parse(session);
+            }
+            return null;
+        }
+
+        // Bina bilgileri ve kontrol listeleri
+        const buildingData = {
+            giris: {
+                name: "🏢 Giriş Binası",
+                info: "Ana giriş binası kontrol listesi",
+                checklist: [
+                    "Giriş kapısı ve güvenlik kontrol edildi",
+                    "Aydınlatma sistemi çalışıyor",
+                    "Alarm sistemi kontrol edildi",
+                    "Yangın söndürme cihazları yerinde",
+                    "İlk yardım malzemeleri kontrol edildi",
+                    "Zemin temiz ve güvenli",
+                    "Elektrik panosu normal çalışıyor",
+                    "Klima/Isıtma sistemi çalışıyor",
+                    "İletişim sistemleri aktif",
+                    "Acil çıkış yolları açık ve işaretli"
+                ]
+            },
+            kum_yag: {
+                name: "🪨 Kum ve Yağ Tutucu",
+                info: "Kum ve yağ tutucu kontrol listesi",
+                checklist: [
+                    "Kum tutucusu kontrol edildi",
+                    "Yağ tutucu yüzey temiz",
+                    "Su seviyesi normal",
+                    "Sızıntı kontrolü yapıldı",
+                    "Mekanik sistemler çalışıyor",
+                    "Temizlik periyodu kontrol edildi",
+                    "Boru bağlantıları sıkı",
+                    "Vanalar sorunsuz çalışıyor",
+                    "Koku kontrolü yapıldı",
+                    "Genel temizlik uygun"
+                ]
+            },
+            idari: {
+                name: "🏗️ İdari Bina",
+                info: "İdari bina kontrol listesi",
+                checklist: [
+                    "Ofis alanları temiz ve düzenli",
+                    "Elektrik ve aydınlatma sistemleri çalışıyor",
+                    "İklim kontrol sistemi normal",
+                    "Güvenlik sistemleri aktif",
+                    "İletişim sistemleri çalışıyor",
+                    "Bilgisayar ve yazıcılar kontrol edildi",
+                    "Toplantı odası hazır",
+                    "Mutfak ve dinlenme alanı temiz",
+                    "Tuvaletler temiz ve malzemeler yeterli",
+                    "Acil çıkış yolları açık"
+                ]
+            },
+            blower: {
+                name: "🌬️ Blower Odası",
+                info: "Blower odası kontrol listesi",
+                checklist: [
+                    "Blower ünitesi çalışıyor",
+                    "Motor sıcaklığı normal",
+                    "Yağ seviyeleri kontrol edildi",
+                    "Titreşim ve ses seviyesi normal",
+                    "Elektrik değerleri ölçüldü",
+                    "Hava filtreleri kontrol edildi",
+                    "Hava basıncı uygun",
+                    "Kayış gerginlikleri kontrol edildi",
+                    "Sızıntı ve kaçak yok",
+                    "Otomasyon sistemi çalışıyor"
+                ]
+            },
+            test1: {
+                name: "🧪 Test Oda 1",
+                info: "Test odası 1 kontrol listesi",
+                checklist: [
+                    "Test ekipmanları çalışır durumda",
+                    "Numune alma işlemi yapıldı",
+                    "pH metre kalibre edildi",
+                    "Sıcaklık ölçümleri normal",
+                    "Kimyasal stoklar yeterli",
+                    "Güvenlik ekipmanları yerinde",
+                    "Havalandırma sistemi çalışıyor",
+                    "Atık bertaraf sistemi kontrol edildi",
+                    "Temizlik ve hijyen sağlandı",
+                    "Kayıtlar düzenli tutuluyor"
+                ]
+            },
+            test2: {
+                name: "🧪 Test Oda 2",
+                info: "Test odası 2 kontrol listesi",
+                checklist: [
+                    "Test ekipmanları çalışır durumda",
+                    "Numune alma işlemi yapıldı",
+                    "Analiz cihazları kalibrasyonda",
+                    "Reaktif ve kimyasallar yeterli",
+                    "Sıcaklık ve nem kontrolü yapıldı",
+                    "Güvenlik protokolleri uygulandı",
+                    "Temizlik ve sterilizasyon yapıldı",
+                    "Veri kayıt sistemi aktif",
+                    "Havalandırma sistemi çalışıyor",
+                    "Acil durum ekipmanları hazır"
+                ]
+            },
+            test3: {
+                name: "🧪 Test Oda 3",
+                info: "Test odası 3 kontrol listesi",
+                checklist: [
+                    "Laboratuvar ekipmanları kontrol edildi",
+                    "Numune hazırlama alanı temiz",
+                    "Ölçüm cihazları çalışıyor",
+                    "Buzdolabı sıcaklığı uygun",
+                    "Kimyasal depolama düzenli",
+                    "Koruyucu ekipmanlar yeterli",
+                    "İlk yardım malzemeleri mevcut",
+                    "Elektrik ve su sistemi normal",
+                    "Atık yönetimi uygun",
+                    "Kayıt ve raporlama güncel"
+                ]
+            },
+            test4: {
+                name: "🧪 Test Oda 4",
+                info: "Test odası 4 kontrol listesi",
+                checklist: [
+                    "Test üniteleri operasyonel",
+                    "Kalibrasyon kontrolleri yapıldı",
+                    "Numune saklama koşulları uygun",
+                    "Analiz sonuçları kaydedildi",
+                    "Kimyasal seviyeler kontrol edildi",
+                    "Güvenlik duşu ve göz yıkama fonksiyonel",
+                    "Havalandırma ve filtrasyon aktif",
+                    "Temizlik prosedürleri tamamlandı",
+                    "Acil müdahale planı güncel",
+                    "Ekipman bakımları zamanında"
+                ]
+            }
+        };
+
+        // Sayfa yüklendiğinde
+        window.onload = function() {
+            // URL'den bina ID'sini al
+            const urlParams = new URLSearchParams(window.location.search);
+            const buildingId = urlParams.get('bina');
+
+            if (!buildingId || !buildingData[buildingId]) {
+                alert('Geçersiz bina seçimi!');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const building = buildingData[buildingId];
+
+            // Bina bilgilerini göster
+            document.getElementById('buildingName').textContent = building.name;
+            document.getElementById('buildingInfo').textContent = building.info;
+            document.getElementById('currentDateTime').textContent = formatDateTime();
+
+            // Kontrol listesini oluştur
+            const checklistContainer = document.getElementById('checklistItems');
+            building.checklist.forEach((item, index) => {
+                const checkItem = document.createElement('div');
+                checkItem.className = 'check-item';
+                checkItem.innerHTML = `
+                    <input type="checkbox" id="check${index}" onchange="updateCheckItem(this)">
+                    <label for="check${index}">${item}</label>
+                `;
+                checklistContainer.appendChild(checkItem);
+            });
+
+            // Kayıtlı verileri yükle
+            loadSavedData(buildingId);
+            
+            // Bugün zaten yapılmış mı kontrol et
+            checkIfAlreadyDone(buildingId);
+        };
+
+        // Bugün zaten yapılmış mı kontrol et
+        function checkIfAlreadyDone(buildingId) {
+            if (isTodayControlDone(buildingId)) {
+                const message = document.getElementById('alreadyDoneMessage');
+                if (message) {
+                    message.style.display = 'block';
+                }
+            }
+        }
+
+        // Checkbox durumu değiştiğinde
+        function updateCheckItem(checkbox) {
+            const checkItem = checkbox.parentElement;
+            if (checkbox.checked) {
+                checkItem.classList.add('checked');
+            } else {
+                checkItem.classList.remove('checked');
+            }
+        }
+
+        // Kontrolü kaydet
+        function saveControl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const buildingId = urlParams.get('bina');
+
+            // Tüm checkbox'ları topla
+            const checkboxes = document.querySelectorAll('#checklistItems input[type="checkbox"]');
+            const checkedItems = [];
+            let checkedCount = 0;
+            
+            checkboxes.forEach((checkbox, index) => {
+                if (checkbox.checked) checkedCount++;
+                checkedItems.push({
+                    index: index,
+                    checked: checkbox.checked,
+                    label: checkbox.nextElementSibling.textContent
+                });
+            });
+
+            // Notları al
+            const notes = document.getElementById('notes').value;
+
+            // Tamamlanma yüzdesi
+            const completionRate = ((checkedCount / checkboxes.length) * 100).toFixed(0);
+
+            // Kullanıcı bilgisini al
+            const currentUser = getCurrentUser();
+            const userName = currentUser ? currentUser.fullName : 'Anonim Kullanıcı';
+            const userId = currentUser ? currentUser.userId : null;
+
+            // Veriyi kaydet
+            const controlData = {
+                buildingId: buildingId,
+                buildingName: buildingData[buildingId].name,
+                date: getTodayDate(),
+                savedAt: new Date().toISOString(),
+                checkedItems: checkedItems,
+                notes: notes,
+                completedBy: userName,
+                userId: userId,
+                userRole: currentUser ? currentUser.role : null,
+                completed: true,
+                checkedCount: checkedCount,
+                totalCount: checkboxes.length,
+                completionRate: completionRate
+            };
+
+            saveControlData(buildingId, controlData);
+            showSuccessMessage();
+            
+            // 2 saniye sonra ana sayfaya dön
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+
+        // Kayıtlı verileri yükle
+        function loadSavedData(buildingId) {
+            const savedData = loadControlData(buildingId);
+            if (savedData) {
+                // Checkbox'ları işaretle
+                savedData.checkedItems.forEach(item => {
+                    const checkbox = document.getElementById(`check${item.index}`);
+                    if (checkbox) {
+                        checkbox.checked = item.checked;
+                        updateCheckItem(checkbox);
+                    }
+                });
+
+                // Notları yükle
+                document.getElementById('notes').value = savedData.notes || '';
+            }
+        }
+
+        // Ana sayfaya dön
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

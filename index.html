@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Bulancak Atıksu Arıtma Tesisi</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-logo">
+                <img src="assets/images/logo.jpg" alt="Bulancak Belediyesi" class="logo">
+            </div>
+            <h1>Bulancak Atıksu Arıtma Tesisi</h1>
+            <h2>Günlük Kontrol Sistemi</h2>
+        </header>
+
+        <main>
+            <div class="welcome-box">
+                <h3>Hoş Geldiniz</h3>
+                <p>Bina kontrolü yapmak için QR kodunu okutun veya aşağıdan bina seçin:</p>
+                <div class="today-stats" id="todayStats">
+                    <p><strong>Bugünün Tarihi:</strong> <span id="todayDate"></span></p>
+                    <p><strong>Tamamlanan Kontroller:</strong> <span id="completedCount">0/8</span></p>
+                </div>
+            </div>
+
+            <div class="building-list">
+                <div class="building-card" onclick="goToControl('giris')">
+                    <div class="building-icon">🏢</div>
+                    <h3>Giriş Binası</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('kum_yag')">
+                    <div class="building-icon">🪨</div>
+                    <h3>Kum ve Yağ Tutucu</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('idari')">
+                    <div class="building-icon">🏗️</div>
+                    <h3>İdari Bina</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('blower')">
+                    <div class="building-icon">🌬️</div>
+                    <h3>Blower Odası</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('test1')">
+                    <div class="building-icon">🧪</div>
+                    <h3>Test Oda 1</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('test2')">
+                    <div class="building-icon">🧪</div>
+                    <h3>Test Oda 2</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('test3')">
+                    <div class="building-icon">🧪</div>
+                    <h3>Test Oda 3</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+
+                <div class="building-card" onclick="goToControl('test4')">
+                    <div class="building-icon">🧪</div>
+                    <h3>Test Oda 4</h3>
+                    <p>Günlük kontrol listesi</p>
+                </div>
+            </div>
+
+            <div class="quick-links">
+                <a href="gecmis.html" class="quick-link">
+                    📅 Geçmiş Kayıtlar
+                </a>
+                <a href="istatistikler.html" class="quick-link">
+                    📊 İstatistikler
+                </a>
+                <a href="qr-kodlar.html" class="quick-link">
+                    📱 QR Kodlar
+                </a>
+            </div>
+        </main>
+
+        <footer>
+            <p><strong>Oğulcan Durkan</strong></p>
+            <p>© 2025 - Atıksu Arıtma Tesisi Kontrol Sistemi</p>
+            <p style="margin-top: 10px; font-size: 0.75em; opacity: 0.5;">
+                <a href="admin-login.html" style="color: inherit; text-decoration: none;">🔐</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        // Sayfa yüklendiğinde
+        window.onload = function() {
+            // Bugünün tarihini göster
+            document.getElementById('todayDate').textContent = formatDate(getTodayDate());
+            
+            // Bugünün durumunu güncelle
+            updateTodayStatus();
+            
+            // Bina kartlarına durum göstergesi ekle
+            updateBuildingCards();
+        };
+
+        // Bugünün durumunu güncelle
+        function updateTodayStatus() {
+            const status = getTodayStatus();
+            const completed = Object.values(status).filter(v => v).length;
+            document.getElementById('completedCount').textContent = `${completed}/8`;
+        }
+
+        // Bina kartlarına durum göstergesi ekle
+        function updateBuildingCards() {
+            const status = getTodayStatus();
+            const buildings = {
+                giris: 'Giriş Binası',
+                kum_yag: 'Kum ve Yağ Tutucu',
+                idari: 'İdari Bina',
+                blower: 'Blower Odası',
+                test1: 'Test Oda 1',
+                test2: 'Test Oda 2',
+                test3: 'Test Oda 3',
+                test4: 'Test Oda 4'
+            };
+
+            Object.keys(buildings).forEach((buildingId, index) => {
+                const card = document.querySelectorAll('.building-card')[index];
+                if (card) {
+                    // Durum rozetini ekle
+                    const existingBadge = card.querySelector('.status-badge');
+                    if (existingBadge) existingBadge.remove();
+
+                    const badge = document.createElement('div');
+                    badge.className = 'status-badge';
+                    
+                    if (status[buildingId]) {
+                        badge.classList.add('completed');
+                        badge.innerHTML = '✓ Tamamlandı';
+                        card.style.opacity = '0.8';
+                    } else {
+                        badge.classList.add('pending');
+                        badge.innerHTML = '⏳ Bekliyor';
+                    }
+                    
+                    card.insertBefore(badge, card.firstChild);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>İstatistikler - Bulancak Atıksu Arıtma Tesisi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .chart-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .chart-title {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .building-stats {
+            display: grid;
+            gap: 15px;
+        }
+
+        .building-stat-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .building-stat-name {
+            flex: 0 0 200px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .building-stat-bar {
+            flex: 1;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .building-stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            transition: width 0.5s ease;
+        }
+
+        .period-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .period-btn {
+            padding: 12px 25px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .period-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .period-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .compliance-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .compliance-indicator.excellent {
+            background: #28a745;
+        }
+
+        .compliance-indicator.good {
+            background: #ffc107;
+        }
+
+        .compliance-indicator.poor {
+            background: #dc3545;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .summary-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .summary-card h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container stats-container">
+        <header>
+            <div class="header-logo">
+                <img src="assets/images/logo.jpg" alt="Bulancak Belediyesi" class="logo">
+            </div>
+            <h1>📊 İstatistikler ve Raporlar</h1>
+            <h2>Kontrol Verileri Analizi</h2>
+        </header>
+
+        <main style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+            
+            <div class="period-selector">
+                <button class="period-btn active" onclick="changePeriod('7', this)">Son 7 Gün</button>
+                <button class="period-btn" onclick="changePeriod('30', this)">Son 30 Gün</button>
+                <button class="period-btn" onclick="changePeriod('90', this)">Son 90 Gün</button>
+                <button class="period-btn" onclick="changePeriod('all', this)">Tüm Zamanlar</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalControls">0</div>
+                    <div class="stat-label">Toplam Kontrol</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="avgCompletion">0%</div>
+                    <div class="stat-label">Ortalama Tamamlanma</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="todayControls">0/4</div>
+                    <div class="stat-label">Bugünün Kontrolleri</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="activeStreak">0</div>
+                    <div class="stat-label">Günlük Seri</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3 class="chart-title">🏢 Binalara Göre Kontrol Sayıları</h3>
+                <div class="building-stats" id="buildingStats">
+                    <!-- JavaScript ile doldurulacak -->
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3 class="chart-title">📈 Uyumluluk Oranları</h3>
+                <div class="building-stats" id="complianceStats">
+                    <!-- JavaScript ile doldurulacak -->
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3 class="chart-title">👥 Kullanıcı Performansı</h3>
+                <div class="building-stats" id="userPerformanceStats">
+                    <!-- JavaScript ile doldurulacak -->
+                </div>
+            </div>
+
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h4>🎯 En İyi Performans</h4>
+                    <div id="bestPerformance">
+                        <div class="summary-item">
+                            <span>Hesaplanıyor...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>⚠️ Dikkat Gereken Alanlar</h4>
+                    <div id="attentionAreas">
+                        <div class="summary-item">
+                            <span>Hesaplanıyor...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>📅 Son Kontrol Tarihleri</h4>
+                    <div id="lastControls">
+                        <div class="summary-item">
+                            <span>Yükleniyor...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                    ← Ana Sayfaya Dön
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script>
+        let currentPeriod = 7;
+
+        const buildings = {
+            giris: '🏢 Giriş Binası',
+            pompaj: '⚙️ Pompaj İstasyonu',
+            aritma: '💧 Arıtma Ünitesi',
+            jenerator: '🔌 Jeneratör Binası'
+        };
+
+        // Sayfa yüklendiğinde
+        window.onload = function() {
+            loadStatistics();
+        };
+
+        // Periyot değiştir
+        function changePeriod(days, btn) {
+            // Aktif butonu değiştir
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            currentPeriod = days;
+            loadStatistics();
+        }
+
+        // İstatistikleri yükle
+        function loadStatistics() {
+            const stats = calculateStats();
+            displayStats(stats);
+        }
+
+        // İstatistikleri hesapla
+        function calculateStats() {
+            const today = new Date();
+            const cutoffDate = currentPeriod === 'all' ? new Date('2020-01-01') : 
+                               new Date(today.getTime() - (currentPeriod * 24 * 60 * 60 * 1000));
+            const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+
+            let totalControls = 0;
+            let totalCompletion = 0;
+            let buildingCounts = {};
+            let buildingCompletions = {};
+
+            Object.keys(buildings).forEach(buildingId => {
+                const controls = getAllControls(buildingId);
+                const filteredControls = controls.filter(c => c.date >= cutoffDateStr && c.data);
+                
+                buildingCounts[buildingId] = filteredControls.length;
+                totalControls += filteredControls.length;
+
+                let buildingTotal = 0;
+                filteredControls.forEach(control => {
+                    if (control.data && control.data.completionRate) {
+                        buildingTotal += parseFloat(control.data.completionRate);
+                    }
+                });
+
+                buildingCompletions[buildingId] = filteredControls.length > 0 ? 
+                    (buildingTotal / filteredControls.length).toFixed(1) : 0;
+                
+                totalCompletion += buildingTotal;
+            });
+
+            const avgCompletion = totalControls > 0 ? (totalCompletion / totalControls).toFixed(1) : 0;
+
+            // Bugünün kontrolleri
+            const todayStatus = getTodayStatus();
+            const todayCompleted = Object.values(todayStatus).filter(v => v).length;
+
+            // Günlük seri hesapla
+            const streak = calculateStreak();
+
+            return {
+                totalControls,
+                avgCompletion,
+                todayCompleted,
+                streak,
+                buildingCounts,
+                buildingCompletions
+            };
+        }
+
+        // Günlük seri hesapla
+        function calculateStreak() {
+            let streak = 0;
+            const today = new Date();
+            
+            for (let i = 0; i < 365; i++) {
+                const checkDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+                const dateStr = checkDate.toISOString().split('T')[0];
+                
+                let hasControlForDay = false;
+                Object.keys(buildings).forEach(buildingId => {
+                    const control = loadControlData(buildingId, dateStr);
+                    if (control) {
+                        hasControlForDay = true;
+                    }
+                });
+                
+                if (hasControlForDay) {
+                    streak++;
+                } else if (i > 0) { // İlk gün (bugün) kontrol yoksa streaki kırma
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+
+        // İstatistikleri göster
+        function displayStats(stats) {
+            // Genel istatistikler
+            document.getElementById('totalControls').textContent = stats.totalControls;
+            document.getElementById('avgCompletion').textContent = stats.avgCompletion + '%';
+            document.getElementById('todayControls').textContent = stats.todayCompleted + '/4';
+            document.getElementById('activeStreak').textContent = stats.streak;
+
+            // Bina istatistikleri
+            const buildingStatsContainer = document.getElementById('buildingStats');
+            buildingStatsContainer.innerHTML = '';
+            
+            Object.keys(buildings).forEach(buildingId => {
+                const count = stats.buildingCounts[buildingId] || 0;
+                const maxCount = Math.max(...Object.values(stats.buildingCounts));
+                const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                
+                const row = document.createElement('div');
+                row.className = 'building-stat-row';
+                row.innerHTML = `
+                    <div class="building-stat-name">${buildings[buildingId]}</div>
+                    <div class="building-stat-bar">
+                        <div class="building-stat-fill" style="width: ${percentage}%">
+                            ${count} kontrol
+                        </div>
+                    </div>
+                `;
+                buildingStatsContainer.appendChild(row);
+            });
+
+            // Uyumluluk oranları
+            const complianceContainer = document.getElementById('complianceStats');
+            complianceContainer.innerHTML = '';
+            
+            Object.keys(buildings).forEach(buildingId => {
+                const completion = stats.buildingCompletions[buildingId] || 0;
+                const complianceClass = completion >= 90 ? 'excellent' : 
+                                       completion >= 70 ? 'good' : 'poor';
+                
+                const row = document.createElement('div');
+                row.className = 'building-stat-row';
+                row.innerHTML = `
+                    <div class="building-stat-name">
+                        <span class="compliance-indicator ${complianceClass}"></span>
+                        ${buildings[buildingId]}
+                    </div>
+                    <div class="building-stat-bar">
+                        <div class="building-stat-fill" style="width: ${completion}%">
+                            %${completion}
+                        </div>
+                    </div>
+                `;
+                complianceContainer.appendChild(row);
+            });
+
+            // Kullanıcı performans istatistikleri
+            displayUserPerformance();
+
+            // En iyi performans
+            displayBestPerformance(stats);
+            
+            // Dikkat gereken alanlar
+            displayAttentionAreas(stats);
+            
+            // Son kontrol tarihleri
+            displayLastControls();
+        }
+
+        // Kullanıcı performans istatistikleri
+        function displayUserPerformance() {
+            const container = document.getElementById('userPerformanceStats');
+            container.innerHTML = '';
+            
+            // Tüm kontrolleri topla ve kullanıcılara göre grupla
+            const userStats = {};
+            
+            Object.keys(buildings).forEach(buildingId => {
+                const controls = getAllControls(buildingId);
+                controls.forEach(control => {
+                    const userName = control.data.completedBy || 'Anonim Kullanıcı';
+                    
+                    if (!userStats[userName]) {
+                        userStats[userName] = {
+                            totalControls: 0,
+                            totalCompletion: 0,
+                            buildings: new Set()
+                        };
+                    }
+                    
+                    userStats[userName].totalControls++;
+                    userStats[userName].totalCompletion += parseInt(control.data.completionRate || 0);
+                    userStats[userName].buildings.add(buildingId);
+                });
+            });
+            
+            // Kullanıcı sayısı yoksa mesaj göster
+            if (Object.keys(userStats).length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #999;">
+                        <p>Henüz kullanıcı bazlı kontrol verisi bulunmamaktadır.</p>
+                        <p style="font-size: 0.9em;">Admin panelden giriş yaparak kontrol yapıldığında burada görünecektir.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Kullanıcıları kontrol sayısına göre sırala
+            const sortedUsers = Object.entries(userStats)
+                .sort((a, b) => b[1].totalControls - a[1].totalControls);
+            
+            sortedUsers.forEach(([userName, stats]) => {
+                const avgCompletion = stats.totalControls > 0 
+                    ? Math.round(stats.totalCompletion / stats.totalControls) 
+                    : 0;
+                
+                const row = document.createElement('div');
+                row.className = 'building-stat-row';
+                row.innerHTML = `
+                    <div class="building-stat-name">
+                        👤 ${userName}
+                    </div>
+                    <div style="flex: 1; display: flex; gap: 20px; align-items: center;">
+                        <div style="flex: 1;">
+                            <small style="color: #666;">Kontrol Sayısı: <strong>${stats.totalControls}</strong></small><br>
+                            <small style="color: #666;">Farklı Bina: <strong>${stats.buildings.size}</strong></small>
+                        </div>
+                        <div class="building-stat-bar" style="flex: 2;">
+                            <div class="building-stat-fill" style="width: ${avgCompletion}%">
+                                Ort. %${avgCompletion}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // En iyi performans
+        function displayBestPerformance(stats) {
+            const container = document.getElementById('bestPerformance');
+            const sorted = Object.entries(stats.buildingCompletions)
+                .sort((a, b) => b[1] - a[1]);
+            
+            if (sorted.length > 0) {
+                const [buildingId, completion] = sorted[0];
+                container.innerHTML = `
+                    <div class="summary-item">
+                        <span>${buildings[buildingId]}</span>
+                        <strong style="color: #28a745;">%${completion}</strong>
+                    </div>
+                `;
+            }
+        }
+
+        // Dikkat gereken alanlar
+        function displayAttentionAreas(stats) {
+            const container = document.getElementById('attentionAreas');
+            const sorted = Object.entries(stats.buildingCompletions)
+                .sort((a, b) => a[1] - b[1]);
+            
+            container.innerHTML = '';
+            
+            sorted.forEach(([buildingId, completion]) => {
+                if (completion < 90) {
+                    const item = document.createElement('div');
+                    item.className = 'summary-item';
+                    item.innerHTML = `
+                        <span>${buildings[buildingId]}</span>
+                        <strong style="color: #dc3545;">%${completion}</strong>
+                    `;
+                    container.appendChild(item);
+                }
+            });
+            
+            if (container.children.length === 0) {
+                container.innerHTML = '<div class="summary-item"><span style="color: #28a745;">✓ Tüm binalar mükemmel durumda!</span></div>';
+            }
+        }
+
+        // Son kontrol tarihleri
+        function displayLastControls() {
+            const container = document.getElementById('lastControls');
+            container.innerHTML = '';
+            
+            Object.keys(buildings).forEach(buildingId => {
+                const controls = getAllControls(buildingId);
+                const lastControl = controls.length > 0 ? controls[0] : null;
+                
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                
+                if (lastControl) {
+                    const date = new Date(lastControl.date);
+                    const today = new Date();
+                    const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
+                    
+                    let timeText = '';
+                    if (diffDays === 0) timeText = 'Bugün';
+                    else if (diffDays === 1) timeText = 'Dün';
+                    else timeText = `${diffDays} gün önce`;
+                    
+                    item.innerHTML = `
+                        <span>${buildings[buildingId]}</span>
+                        <strong>${timeText}</strong>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <span>${buildings[buildingId]}</span>
+                        <strong style="color: #dc3545;">Kontrol yok</strong>
+                    `;
+                }
+                
+                container.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>
