@@ -2,10 +2,14 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/auth.php';
 
-// Get building ID from URL
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$pathParts = explode('/', trim($path, '/'));
-$buildingId = end($pathParts);
+// Get building ID from query string
+$buildingId = $_GET['id'] ?? null;
+
+if (!$buildingId) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Bina ID gerekli']);
+    exit;
+}
 
 $db = getDB();
 
@@ -26,10 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt->execute([$buildingId]);
         $checklist = $stmt->fetchAll();
         
+        // Checklist'i text array olarak dön (frontend bekliyor)
+        $checklistTexts = array_map(function($item) {
+            return $item['item_text'];
+        }, $checklist);
+        
+        $building['checklist'] = $checklistTexts;
+        
         echo json_encode([
             'success' => true,
-            'building' => $building,
-            'checklist' => $checklist
+            'building' => $building
         ]);
     } catch (Exception $e) {
         http_response_code(500);

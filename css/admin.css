@@ -38,6 +38,8 @@ body.admin-body {
     z-index: 1000;
     transition: transform 0.3s ease;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-header {
@@ -66,6 +68,8 @@ body.admin-body {
 .sidebar-menu {
     list-style: none;
     padding: 20px 0;
+    flex: 1;
+    overflow-y: auto;
 }
 
 .menu-item {
@@ -115,11 +119,14 @@ body.admin-body {
 }
 
 .sidebar-footer {
-    position: absolute;
+    position: sticky;
     bottom: 0;
     width: 100%;
     padding: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, transparent 0%, var(--dark-bg) 20%, var(--dark-bg) 100%);
+    margin-top: auto;
+    z-index: 10;
 }
 
 .user-info {

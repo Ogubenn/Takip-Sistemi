@@ -1,32 +1,149 @@
-// Admin Panel JavaScript Functions
+// ============================================
+// ADMIN.JS - API ENTEGRASYONLU SÜRÜM
+// LocalStorage → Backend API Migration
 // Oğulcan Durkan - 2025
+// ============================================
 
-// Session kontrolü
-function checkAdminSession() {
-    const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
-    if (!session) {
-        window.location.href = 'admin-login.html';
+// ============================================
+// AUTH & SESSION YÖNETİMİ
+// ============================================
+
+// Session kontrolü (Token tabanlı)
+async function checkAdminSession() {
+    const token = API.getToken();
+    
+    if (!token) {
+        // Token yoksa login sayfasına yönlendir
+        if (!window.location.pathname.includes('admin-login.html')) {
+            window.location.href = 'admin-login.html';
+        }
         return null;
     }
-    return JSON.parse(session);
+    
+    // Token varsa verify et
+    const user = await verifyToken();
+    return user;
+}
+
+// Token doğrula
+async function verifyToken() {
+    try {
+        const response = await API.get('/auth/verify.php', API.getToken());
+        
+        if (!response.success) {
+            // Token geçersiz
+            API.removeToken();
+            if (!window.location.pathname.includes('admin-login.html')) {
+                window.location.href = 'admin-login.html';
+            }
+            return null;
+        }
+        
+        return response.user;
+    } catch (error) {
+        console.error('Token doğrulama hatası:', error);
+        API.removeToken();
+        if (!window.location.pathname.includes('admin-login.html')) {
+            window.location.href = 'admin-login.html';
+        }
+        return null;
+    }
+}
+
+// Login işlemi
+async function handleLogin(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const rememberMe = document.getElementById('rememberMe').checked;
+    
+    if (!username || !password) {
+        showToast('Kullanıcı adı ve şifre gerekli!', 'error');
+        return;
+    }
+    
+    showLoading('Giriş yapılıyor...');
+    
+    try {
+        const response = await API.post('/auth/login.php', {
+            username: username,
+            password: password,
+            rememberMe: rememberMe
+        });
+        
+        if (response.success) {
+            API.setToken(response.token, rememberMe);
+            showSuccess('Giriş başarılı! Yönlendiriliyorsunuz...');
+            
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 1000);
+        } else {
+            showError(response.message || 'Giriş başarısız');
+        }
+    } catch (error) {
+        showError('Sunucuya bağlanılamadı: ' + error.message);
+    }
 }
 
 // Çıkış yap
 function adminLogout() {
     if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
-        localStorage.removeItem('admin_session');
-        sessionStorage.removeItem('admin_session');
-        window.location.href = 'admin-login.html';
+        API.removeToken();
+        showSuccess('Çıkış yapıldı');
+        setTimeout(() => {
+            window.location.href = 'admin-login.html';
+        }, 1000);
     }
 }
 
-// Toast bildirim göster
+// ============================================
+// UI HELPER FONKSİYONLARI
+// ============================================
+
+function showLoading(message = 'Yükleniyor...') {
+    let loader = document.getElementById('globalLoader');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'globalLoader';
+        loader.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                <div style="background: white; padding: 30px; border-radius: 10px; text-align: center;">
+                    <div style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #0f2862; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
+                    <p style="margin: 0; font-size: 16px; color: #333;">${message}</p>
+                </div>
+            </div>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+        document.body.appendChild(loader);
+    }
+    loader.style.display = 'block';
+}
+
+function hideLoading() {
+    const loader = document.getElementById('globalLoader');
+    if (loader) {
+        loader.style.display = 'none';
+    }
+}
+
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
+    if (!toast) {
+        console.warn('Toast element bulunamadı');
+        alert(message);
+        return;
+    }
+    
     const toastMessage = document.getElementById('toastMessage');
     const toastIcon = document.getElementById('toastIcon');
     
-    // Icon seç
     const icons = {
         success: '✅',
         error: '❌',
@@ -34,20 +151,27 @@ function showToast(message, type = 'success') {
         info: 'ℹ️'
     };
     
-    toastIcon.textContent = icons[type] || icons.info;
-    toastMessage.textContent = message;
+    if (toastIcon) toastIcon.textContent = icons[type] || icons.info;
+    if (toastMessage) toastMessage.textContent = message;
     
-    // Class'ları temizle
     toast.className = 'toast';
     toast.classList.add(`toast-${type}`, 'show');
     
-    // 4 saniye sonra gizle
     setTimeout(() => {
         toast.classList.remove('show');
     }, 4000);
 }
 
-// Modal aç
+function showError(message) {
+    hideLoading();
+    showToast(message, 'error');
+}
+
+function showSuccess(message) {
+    hideLoading();
+    showToast(message, 'success');
+}
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -56,7 +180,6 @@ function openModal(modalId) {
     }
 }
 
-// Modal kapat
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -65,7 +188,6 @@ function closeModal(modalId) {
     }
 }
 
-// Modal dışına tıklanınca kapat
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.classList.remove('show');
@@ -73,24 +195,35 @@ window.onclick = function(event) {
     }
 }
 
-// ==================== KULLANICI YÖNETİMİ ====================
+// ============================================
+// KULLANICI YÖNETİMİ (API)
+// ============================================
 
 // Kullanıcıları getir
-function getUsers() {
-    return JSON.parse(localStorage.getItem('admin_users') || '[]');
-}
-
-// Kullanıcıları kaydet
-function saveUsers(users) {
-    localStorage.setItem('admin_users', JSON.stringify(users));
+async function getUsers() {
+    try {
+        const response = await API.get('/users/index.php', API.getToken());
+        
+        if (response.success) {
+            return response.users || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Kullanıcılar yüklenemedi:', error);
+        return [];
+    }
 }
 
 // Kullanıcı listesini göster
-function displayUsers() {
-    const users = getUsers();
+async function displayUsers() {
     const tbody = document.getElementById('usersTableBody');
-    
     if (!tbody) return;
+    
+    showLoading('Kullanıcılar yükleniyor...');
+    
+    const users = await getUsers();
+    
+    hideLoading();
     
     if (users.length === 0) {
         tbody.innerHTML = `
@@ -109,9 +242,9 @@ function displayUsers() {
         <tr>
             <td>
                 <div class="user-avatar" style="display: inline-flex; width: 35px; height: 35px; font-size: 1em; margin-right: 10px;">
-                    ${user.fullName.charAt(0).toUpperCase()}
+                    ${user.full_name.charAt(0).toUpperCase()}
                 </div>
-                <strong>${user.fullName}</strong>
+                <strong>${user.full_name}</strong>
             </td>
             <td>${user.username}</td>
             <td>${user.email || '-'}</td>
@@ -121,12 +254,12 @@ function displayUsers() {
                 </span>
             </td>
             <td style="font-size: 0.85em; color: #666;">
-                ${user.lastLogin ? new Date(user.lastLogin).toLocaleString('tr-TR') : 'Hiç giriş yapmadı'}
+                ${user.last_login ? new Date(user.last_login).toLocaleString('tr-TR') : 'Hiç giriş yapmadı'}
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="action-btn btn-edit" onclick="editUser('${user.id}')">✏️ Düzenle</button>
-                    <button class="action-btn btn-delete" onclick="deleteUser('${user.id}')">🗑️ Sil</button>
+                    <button class="action-btn btn-edit" onclick="editUser(${user.id})">✏️ Düzenle</button>
+                    <button class="action-btn btn-delete" onclick="deleteUser(${user.id})">🗑️ Sil</button>
                 </div>
             </td>
         </tr>
@@ -135,24 +268,33 @@ function displayUsers() {
 
 // Yeni kullanıcı ekle modal aç
 function openAddUserModal() {
-    document.getElementById('userForm').reset();
+    const form = document.getElementById('userForm');
+    if (form) form.reset();
+    
     document.getElementById('userId').value = '';
     document.getElementById('userModalTitle').textContent = '➕ Yeni Kullanıcı Ekle';
+    document.getElementById('userPassword').required = true;
+    document.getElementById('userPassword').placeholder = 'Şifre';
+    
     openModal('userModal');
 }
 
 // Kullanıcı düzenle
-function editUser(userId) {
-    const users = getUsers();
+async function editUser(userId) {
+    showLoading('Kullanıcı bilgileri yükleniyor...');
+    
+    const users = await getUsers();
     const user = users.find(u => u.id === userId);
     
+    hideLoading();
+    
     if (!user) {
-        showToast('Kullanıcı bulunamadı!', 'error');
+        showError('Kullanıcı bulunamadı!');
         return;
     }
     
     document.getElementById('userId').value = user.id;
-    document.getElementById('userFullName').value = user.fullName;
+    document.getElementById('userFullName').value = user.full_name;
     document.getElementById('userUsername').value = user.username;
     document.getElementById('userEmail').value = user.email || '';
     document.getElementById('userRole').value = user.role;
@@ -165,27 +307,29 @@ function editUser(userId) {
 }
 
 // Kullanıcı sil
-function deleteUser(userId) {
-    const users = getUsers();
-    const user = users.find(u => u.id === userId);
-    
-    if (!user) return;
-    
-    if (user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1) {
-        showToast('Son admin kullanıcısını silemezsiniz!', 'error');
+async function deleteUser(userId) {
+    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
         return;
     }
     
-    if (confirm(`${user.fullName} kullanıcısını silmek istediğinizden emin misiniz?`)) {
-        const newUsers = users.filter(u => u.id !== userId);
-        saveUsers(newUsers);
-        displayUsers();
-        showToast('Kullanıcı başarıyla silindi!', 'success');
+    showLoading('Kullanıcı siliniyor...');
+    
+    try {
+        const response = await API.delete(`/users/index.php?id=${userId}`, API.getToken());
+        
+        if (response.success) {
+            showSuccess('Kullanıcı başarıyla silindi!');
+            displayUsers();
+        } else {
+            showError(response.message || 'Kullanıcı silinemedi');
+        }
+    } catch (error) {
+        showError('Sunucu hatası: ' + error.message);
     }
 }
 
-// Kullanıcı formu kaydet
-function saveUser(event) {
+// Kullanıcı kaydet (ekle/güncelle)
+async function saveUser(event) {
     event.preventDefault();
     
     const userId = document.getElementById('userId').value;
@@ -195,86 +339,91 @@ function saveUser(event) {
     const role = document.getElementById('userRole').value;
     const password = document.getElementById('userPassword').value;
     
-    const users = getUsers();
-    
-    // Kullanıcı adı kontrolü
-    const existingUser = users.find(u => u.username === username && u.id !== userId);
-    if (existingUser) {
-        showToast('Bu kullanıcı adı zaten kullanılıyor!', 'error');
+    if (!fullName || !username || !role) {
+        showError('Lütfen tüm zorunlu alanları doldurun!');
         return;
     }
     
-    if (userId) {
-        // Güncelle
-        const index = users.findIndex(u => u.id === userId);
-        if (index !== -1) {
-            users[index].fullName = fullName;
-            users[index].username = username;
-            users[index].email = email;
-            users[index].role = role;
-            if (password) {
-                users[index].password = btoa(password);
-            }
-            users[index].updatedAt = new Date().toISOString();
-        }
-        showToast('Kullanıcı başarıyla güncellendi!', 'success');
-    } else {
-        // Yeni ekle
-        const newUser = {
-            id: 'user-' + Date.now(),
-            fullName,
-            username,
-            email,
-            role,
-            password: btoa(password),
-            createdAt: new Date().toISOString(),
-            lastLogin: null
-        };
-        users.push(newUser);
-        showToast('Kullanıcı başarıyla eklendi!', 'success');
+    showLoading(userId ? 'Kullanıcı güncelleniyor...' : 'Kullanıcı ekleniyor...');
+    
+    const data = {
+        full_name: fullName,
+        username: username,
+        email: email,
+        role: role
+    };
+    
+    if (password) {
+        data.password = password;
     }
     
-    saveUsers(users);
-    displayUsers();
-    closeModal('userModal');
+    try {
+        let response;
+        
+        if (userId) {
+            // Güncelle
+            response = await API.put(`/users/index.php?id=${userId}`, data, API.getToken());
+        } else {
+            // Yeni ekle
+            if (!password) {
+                showError('Yeni kullanıcı için şifre gerekli!');
+                return;
+            }
+            response = await API.post('/users/index.php', data, API.getToken());
+        }
+        
+        if (response.success) {
+            showSuccess(userId ? 'Kullanıcı güncellendi!' : 'Kullanıcı eklendi!');
+            closeModal('userModal');
+            displayUsers();
+            // Dashboard'u otomatik güncelle
+            loadDashboard();
+        } else {
+            hideLoading();
+            showError(response.message || 'İşlem başarısız');
+        }
+    } catch (error) {
+        hideLoading();
+        // Daha kullanıcı dostu hata mesajı
+        let errorMsg = error.message;
+        if (errorMsg.includes('Duplicate entry') && errorMsg.includes('username')) {
+            errorMsg = 'Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir kullanıcı adı seçin.';
+        } else if (errorMsg.includes('Duplicate entry') && errorMsg.includes('email')) {
+            errorMsg = 'Bu e-posta adresi zaten kullanılıyor. Lütfen farklı bir e-posta adresi seçin.';
+        }
+        showError(errorMsg);
+    }
 }
 
-// ==================== BİNA YÖNETİMİ ====================
+// ============================================
+// BİNA YÖNETİMİ (API)
+// ============================================
 
 // Binaları getir
-function getBuildings() {
-    const buildings = localStorage.getItem('admin_buildings');
-    if (!buildings) {
-        // Varsayılan binalar
-        const defaultBuildings = [
-            { id: 'giris', name: 'Giriş Binası', icon: '🏢', description: 'Ana giriş binası kontrol listesi', active: true },
-            { id: 'kum_yag', name: 'Kum ve Yağ Tutucu', icon: '🪨', description: 'Kum ve yağ tutucu kontrol listesi', active: true },
-            { id: 'idari', name: 'İdari Bina', icon: '🏗️', description: 'İdari bina kontrol listesi', active: true },
-            { id: 'blower', name: 'Blower Odası', icon: '🌬️', description: 'Blower odası kontrol listesi', active: true },
-            { id: 'test1', name: 'Test Oda 1', icon: '🧪', description: 'Test odası 1 kontrol listesi', active: true },
-            { id: 'test2', name: 'Test Oda 2', icon: '🧪', description: 'Test odası 2 kontrol listesi', active: true },
-            { id: 'test3', name: 'Test Oda 3', icon: '🧪', description: 'Test odası 3 kontrol listesi', active: true },
-            { id: 'test4', name: 'Test Oda 4', icon: '🧪', description: 'Test odası 4 kontrol listesi', active: true }
-        ];
-        localStorage.setItem('admin_buildings', JSON.stringify(defaultBuildings));
-        return defaultBuildings;
+async function getBuildings() {
+    try {
+        const response = await API.get('/buildings/index.php');
+        
+        if (response.success) {
+            return response.buildings || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Binalar yüklenemedi:', error);
+        return [];
     }
-    return JSON.parse(buildings);
-}
-
-// Binaları kaydet
-function saveBuildings(buildings) {
-    localStorage.setItem('admin_buildings', JSON.stringify(buildings));
-    // Kontrol sayfasını güncelle
-    updateBuildingDataInControlPage();
 }
 
 // Bina listesini göster
-function displayBuildings() {
-    const buildings = getBuildings();
+async function displayBuildings() {
     const tbody = document.getElementById('buildingsTableBody');
-    
     if (!tbody) return;
+    
+    showLoading('Binalar yükleniyor...');
+    
+    const buildings = await getBuildings();
+    
+    hideLoading();
     
     if (buildings.length === 0) {
         tbody.innerHTML = `
@@ -291,17 +440,12 @@ function displayBuildings() {
     
     tbody.innerHTML = buildings.map(building => `
         <tr>
-            <td style="font-size: 2em;">${building.icon}</td>
+            <td><div style="font-size: 2em;">${building.icon}</div></td>
             <td><strong>${building.name}</strong></td>
-            <td style="color: #666;">${building.description}</td>
-            <td>
-                <span class="badge ${building.active ? 'badge-success' : 'badge-warning'}">
-                    ${building.active ? '✅ Aktif' : '⏸️ Pasif'}
-                </span>
-            </td>
+            <td>${building.description || '-'}</td>
+            <td><span class="badge ${building.is_active ? 'badge-success' : 'badge-secondary'}">${building.is_active ? '✅ Aktif' : '❌ Pasif'}</span></td>
             <td>
                 <div class="action-buttons">
-                    <button class="action-btn btn-view" onclick="manageBuildingChecklists('${building.id}')">📋 Kontrol Listesi</button>
                     <button class="action-btn btn-edit" onclick="editBuilding('${building.id}')">✏️ Düzenle</button>
                     <button class="action-btn btn-delete" onclick="deleteBuilding('${building.id}')">🗑️ Sil</button>
                 </div>
@@ -310,449 +454,519 @@ function displayBuildings() {
     `).join('');
 }
 
-// Yeni bina ekle modal aç
+// Yeni bina modal aç
 function openAddBuildingModal() {
-    document.getElementById('buildingForm').reset();
+    const form = document.getElementById('buildingForm');
+    if (form) form.reset();
+    
+    document.getElementById('buildingIdHidden').value = '';
     document.getElementById('buildingId').value = '';
-    document.getElementById('buildingIdInput').disabled = false;
+    document.getElementById('buildingId').readOnly = false;
     document.getElementById('buildingModalTitle').textContent = '➕ Yeni Bina Ekle';
+    
     openModal('buildingModal');
 }
 
 // Bina düzenle
-function editBuilding(buildingId) {
-    const buildings = getBuildings();
-    const building = buildings.find(b => b.id === buildingId);
+async function editBuilding(buildingId) {
+    showLoading('Bina bilgileri yükleniyor...');
     
-    if (!building) {
-        showToast('Bina bulunamadı!', 'error');
-        return;
+    try {
+        const response = await API.get(`/buildings/detail.php?id=${buildingId}`);
+        
+        hideLoading();
+        
+        if (response.success && response.building) {
+            const building = response.building;
+            
+            document.getElementById('buildingIdHidden').value = building.id;
+            document.getElementById('buildingId').value = building.id;
+            document.getElementById('buildingId').readOnly = true;
+            document.getElementById('buildingName').value = building.name;
+            document.getElementById('buildingIcon').value = building.icon;
+            document.getElementById('buildingDescription').value = building.description || '';
+            document.getElementById('buildingActive').checked = building.is_active;
+            
+            document.getElementById('buildingModalTitle').textContent = '✏️ Bina Düzenle';
+            openModal('buildingModal');
+        } else {
+            showError('Bina bulunamadı!');
+        }
+    } catch (error) {
+        showError('Sunucu hatası: ' + error.message);
     }
-    
-    document.getElementById('buildingId').value = building.id;
-    document.getElementById('buildingIdInput').value = building.id;
-    document.getElementById('buildingIdInput').disabled = true;
-    document.getElementById('buildingName').value = building.name;
-    document.getElementById('buildingIcon').value = building.icon;
-    document.getElementById('buildingDescription').value = building.description;
-    document.getElementById('buildingActive').checked = building.active;
-    
-    document.getElementById('buildingModalTitle').textContent = '✏️ Bina Düzenle';
-    openModal('buildingModal');
 }
 
 // Bina sil
-function deleteBuilding(buildingId) {
-    const buildings = getBuildings();
-    const building = buildings.find(b => b.id === buildingId);
+async function deleteBuilding(buildingId) {
+    if (!confirm('Bu binayı silmek istediğinizden emin misiniz? İlişkili tüm kayıtlar silinecek!')) {
+        return;
+    }
     
-    if (!building) return;
+    showLoading('Bina siliniyor...');
     
-    if (confirm(`${building.name} binasını silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz ve tüm kontrol kayıtları silinecektir!`)) {
-        // Binanın tüm verilerini sil
-        const keys = Object.keys(localStorage);
-        keys.forEach(key => {
-            if (key.startsWith(`kontrol_${buildingId}_`) || key === `index_${buildingId}`) {
-                localStorage.removeItem(key);
-            }
-        });
+    try {
+        const response = await API.delete(`/buildings/index.php?id=${buildingId}`, API.getToken());
         
-        const newBuildings = buildings.filter(b => b.id !== buildingId);
-        saveBuildings(newBuildings);
-        displayBuildings();
-        showToast('Bina ve tüm kayıtları başarıyla silindi!', 'success');
+        if (response.success) {
+            showSuccess('Bina başarıyla silindi!');
+            displayBuildings();
+            // Dashboard'u otomatik güncelle
+            loadDashboard();
+        } else {
+            showError(response.message || 'Bina silinemedi');
+        }
+    } catch (error) {
+        showError('Sunucu hatası: ' + error.message);
     }
 }
 
-// Bina formu kaydet
-function saveBuilding(event) {
+// Bina kaydet
+async function saveBuilding(event) {
     event.preventDefault();
     
-    const oldId = document.getElementById('buildingId').value;
-    const newId = document.getElementById('buildingIdInput').value.trim().toLowerCase().replace(/\s+/g, '_');
-    const name = document.getElementById('buildingName').value.trim();
-    const icon = document.getElementById('buildingIcon').value.trim();
-    const description = document.getElementById('buildingDescription').value.trim();
-    const active = document.getElementById('buildingActive').checked;
+    const buildingIdHidden = document.getElementById('buildingIdHidden').value.trim();
+    const buildingId = document.getElementById('buildingId').value.trim();
+    const buildingName = document.getElementById('buildingName').value.trim();
+    const buildingIcon = document.getElementById('buildingIcon').value.trim();
+    const buildingDescription = document.getElementById('buildingDescription').value.trim();
+    const buildingActive = document.getElementById('buildingActive').checked;
     
-    const buildings = getBuildings();
-    
-    // ID kontrolü
-    const existingBuilding = buildings.find(b => b.id === newId && b.id !== oldId);
-    if (existingBuilding) {
-        showToast('Bu bina ID zaten kullanılıyor!', 'error');
+    if (!buildingId || !buildingName) {
+        showError('ID ve isim zorunludur!');
         return;
     }
     
-    if (oldId) {
-        // Güncelle
-        const index = buildings.findIndex(b => b.id === oldId);
-        if (index !== -1) {
-            buildings[index].name = name;
-            buildings[index].icon = icon;
-            buildings[index].description = description;
-            buildings[index].active = active;
+    const isEdit = buildingIdHidden !== '';
+    
+    showLoading(isEdit ? 'Bina güncelleniyor...' : 'Bina ekleniyor...');
+    
+    const data = {
+        id: buildingId,
+        name: buildingName,
+        icon: buildingIcon || '🏢',
+        description: buildingDescription,
+        is_active: buildingActive
+    };
+    
+    try {
+        let response;
+        
+        if (isEdit) {
+            response = await API.put(`/buildings/index.php?id=${buildingIdHidden}`, data, API.getToken());
+        } else {
+            response = await API.post('/buildings/index.php', data, API.getToken());
         }
-        showToast('Bina başarıyla güncellendi!', 'success');
-    } else {
-        // Yeni ekle
-        const newBuilding = {
-            id: newId,
-            name,
-            icon,
-            description,
-            active,
-            createdAt: new Date().toISOString()
-        };
-        buildings.push(newBuilding);
-        showToast('Bina başarıyla eklendi!', 'success');
+        
+        if (response.success) {
+            showSuccess(isEdit ? 'Bina güncellendi!' : 'Bina eklendi!');
+            closeModal('buildingModal');
+            displayBuildings();
+            // Dashboard'u otomatik güncelle
+            loadDashboard();
+        } else {
+            showError(response.message || 'İşlem başarısız');
+        }
+    } catch (error) {
+        showError('Sunucu hatası: ' + error.message);
     }
+}
+
+// ============================================
+// DASHBOARD
+// ============================================
+
+async function loadDashboard() {
+    showLoading('Dashboard yükleniyor...');
     
-    saveBuildings(buildings);
-    displayBuildings();
-    closeModal('buildingModal');
-}
-
-// ==================== KONTROL LİSTESİ YÖNETİMİ ====================
-
-// Kontrol listelerini getir
-function getBuildingChecklists(buildingId) {
-    const key = `checklist_${buildingId}`;
-    const checklists = localStorage.getItem(key);
-    return checklists ? JSON.parse(checklists) : [];
-}
-
-// Kontrol listelerini kaydet
-function saveBuildingChecklists(buildingId, checklists) {
-    const key = `checklist_${buildingId}`;
-    localStorage.setItem(key, JSON.stringify(checklists));
-    updateBuildingDataInControlPage();
-}
-
-// Kontrol listesi yönetim sayfasını aç
-function manageBuildingChecklists(buildingId) {
-    const buildings = getBuildings();
-    const building = buildings.find(b => b.id === buildingId);
-    
-    if (!building) {
-        showToast('Bina bulunamadı!', 'error');
-        return;
+    try {
+        // Get all data in parallel
+        const [statsResponse, buildingsResponse, usersResponse] = await Promise.all([
+            API.get('/controls/stats.php', API.getToken()),
+            API.get('/buildings/index.php'),
+            API.get('/users/index.php', API.getToken())
+        ]);
+        
+        hideLoading();
+        
+        // Update user count
+        if (usersResponse.success) {
+            const activeUsers = usersResponse.users.filter(u => u.is_active).length;
+            document.getElementById('userCount').textContent = activeUsers;
+        }
+        
+        // Update building count
+        if (buildingsResponse.success) {
+            const activeBuildings = buildingsResponse.buildings.filter(b => b.is_active).length;
+            document.getElementById('buildingCount').textContent = activeBuildings;
+        }
+        
+        // Update control stats
+        if (statsResponse.success) {
+            document.getElementById('controlCount').textContent = statsResponse.totalControls || 0;
+            document.getElementById('todayControlCount').textContent = statsResponse.todayControls ? statsResponse.todayControls.length : 0;
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Dashboard yüklenemedi:', error);
+        showError('Dashboard yüklenemedi: ' + error.message);
     }
-    
-    document.getElementById('currentBuildingId').value = buildingId;
-    document.getElementById('checklistBuildingName').textContent = `${building.icon} ${building.name}`;
-    
-    displayBuildingChecklists(buildingId);
-    openModal('checklistModal');
 }
 
-// Kontrol listelerini göster
-function displayBuildingChecklists(buildingId) {
-    const checklists = getBuildingChecklists(buildingId);
-    const tbody = document.getElementById('checklistsTableBody');
+// ============================================
+// İSTATİSTİKLER YÖNETİMİ
+// ============================================
+
+async function loadStatistics() {
+    showLoading('İstatistikler yükleniyor...');
     
+    try {
+        // Get stats from API
+        const statsResponse = await API.get('/controls/stats.php', API.getToken());
+        const buildingsResponse = await API.get('/buildings/index.php');
+        const usersResponse = await API.get('/users/index.php', API.getToken());
+        
+        hideLoading();
+        
+        if (statsResponse.success) {
+            // Update stat cards
+            document.getElementById('stats_total_controls').textContent = statsResponse.totalControls || 0;
+            document.getElementById('stats_monthly_controls').textContent = statsResponse.monthlyControls || 0;
+            document.getElementById('stats_avg_completion').textContent = 
+                (statsResponse.avgCompletionRate || 0).toFixed(1) + '%';
+        }
+        
+        if (buildingsResponse.success) {
+            const activeBuildings = buildingsResponse.buildings.filter(b => b.is_active).length;
+            document.getElementById('stats_active_buildings').textContent = activeBuildings;
+        }
+        
+        if (usersResponse.success) {
+            const activeUsers = usersResponse.users.filter(u => u.is_active).length;
+            document.getElementById('stats_active_users').textContent = activeUsers;
+        }
+        
+        // Load building stats table
+        await loadBuildingStats();
+        
+    } catch (error) {
+        hideLoading();
+        showError('İstatistikler yüklenemedi: ' + error.message);
+    }
+}
+
+async function loadBuildingStats() {
+    const tbody = document.getElementById('buildingStatsTable');
     if (!tbody) return;
     
-    if (checklists.length === 0) {
+    try {
+        const buildings = await getBuildings();
+        const controlsResponse = await API.get('/controls/index.php');
+        
+        if (buildings.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="empty-state">
+                        <div class="empty-state-icon">🏢</div>
+                        <h3>Henüz bina yok</h3>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        const controls = controlsResponse.success ? controlsResponse.controls : [];
+        
+        tbody.innerHTML = buildings.map(building => {
+            const buildingControls = controls.filter(c => c.building_id === building.id);
+            const totalControls = buildingControls.length;
+            const lastControl = buildingControls.length > 0 ? 
+                new Date(buildingControls[0].control_date).toLocaleDateString('tr-TR') : 
+                'Kontrol yok';
+            const avgCompletion = buildingControls.length > 0 ?
+                (buildingControls.reduce((sum, c) => sum + parseFloat(c.completion_rate || 0), 0) / buildingControls.length).toFixed(1) + '%' :
+                '0%';
+            
+            return `
+                <tr>
+                    <td>
+                        <span style="font-size: 1.5em; margin-right: 10px;">${building.icon}</span>
+                        <strong>${building.name}</strong>
+                    </td>
+                    <td>${totalControls}</td>
+                    <td>${lastControl}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${avgCompletion}; height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a);"></div>
+                            </div>
+                            <span style="font-weight: bold; min-width: 50px;">${avgCompletion}</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="3" class="empty-state" style="padding: 40px;">
-                    <div class="empty-state-icon" style="font-size: 3em;">📋</div>
+                <td colspan="4" class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <h3>İstatistikler yüklenemedi</h3>
+                    <p>${error.message}</p>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// ============================================
+// CHECKLIST ITEMS YÖNETİMİ
+// ============================================
+
+async function loadChecklistItems(buildingId = null) {
+    showLoading('Kontrol maddeleri yükleniyor...');
+    
+    try {
+        const endpoint = buildingId ? `/checklist/index.php?building_id=${buildingId}` : '/checklist/index.php';
+        const response = await API.get(endpoint, API.getToken());
+        
+        hideLoading();
+        
+        if (response.success) {
+            displayChecklistItems(response.items);
+            
+            // Populate building filter dropdown
+            const buildings = await getBuildings();
+            const filterSelect = document.getElementById('checklistBuildingFilter');
+            if (filterSelect && filterSelect.options.length === 1) {
+                buildings.forEach(building => {
+                    const option = document.createElement('option');
+                    option.value = building.id;
+                    option.textContent = `${building.icon} ${building.name}`;
+                    filterSelect.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        hideLoading();
+        showError('Kontrol maddeleri yüklenemedi: ' + error.message);
+    }
+}
+
+function displayChecklistItems(items) {
+    const tbody = document.getElementById('checklistTableBody');
+    if (!tbody) return;
+    
+    if (items.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state">
+                    <div class="empty-state-icon">✅</div>
                     <h3>Henüz kontrol maddesi yok</h3>
-                    <p>Yeni kontrol maddesi eklemek için yukarıdaki butonu kullanın.</p>
+                    <p>Yeni madde eklemek için yukarıdaki butonu kullanın.</p>
                 </td>
             </tr>
         `;
         return;
     }
     
-    tbody.innerHTML = checklists.map((item, index) => `
+    tbody.innerHTML = items.map(item => `
         <tr>
-            <td style="width: 50px; text-align: center; color: #999;">${index + 1}</td>
-            <td>${item}</td>
-            <td style="width: 150px;">
+            <td style="text-align: center; font-weight: bold; color: #666;">${item.item_order}</td>
+            <td>
+                <strong>${item.building_name || item.building_id}</strong>
+            </td>
+            <td>${item.item_text}</td>
+            <td>
+                <span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">
+                    ${item.is_active ? '✅ Aktif' : '❌ Pasif'}
+                </span>
+            </td>
+            <td>
                 <div class="action-buttons">
-                    <button class="action-btn btn-edit" onclick="editChecklistItem(${index})">✏️</button>
-                    <button class="action-btn btn-delete" onclick="deleteChecklistItem(${index})">🗑️</button>
-                    ${index > 0 ? `<button class="action-btn btn-view" onclick="moveChecklistItem(${index}, -1)">⬆️</button>` : ''}
-                    ${index < ${checklists.length - 1} ? `<button class="action-btn btn-view" onclick="moveChecklistItem(${index}, 1)">⬇️</button>` : ''}
+                    <button class="action-btn btn-edit" onclick="editChecklistItem(${item.id})">✏️ Düzenle</button>
+                    <button class="action-btn btn-delete" onclick="deleteChecklistItem(${item.id})">🗑️ Sil</button>
                 </div>
             </td>
         </tr>
     `).join('');
 }
 
-// Yeni kontrol maddesi ekle
-function addChecklistItem() {
-    const buildingId = document.getElementById('currentBuildingId').value;
-    const itemText = prompt('Yeni kontrol maddesini girin:');
+function filterChecklistItems() {
+    const filterSelect = document.getElementById('checklistBuildingFilter');
+    const buildingId = filterSelect.value;
+    loadChecklistItems(buildingId || null);
+}
+
+function openAddChecklistItemModal() {
+    const form = document.getElementById('checklistItemForm');
+    if (form) form.reset();
     
-    if (itemText && itemText.trim()) {
-        const checklists = getBuildingChecklists(buildingId);
-        checklists.push(itemText.trim());
-        saveBuildingChecklists(buildingId, checklists);
-        displayBuildingChecklists(buildingId);
-        showToast('Kontrol maddesi eklendi!', 'success');
+    document.getElementById('checklistItemId').value = '';
+    document.getElementById('checklistItemModalTitle').textContent = '➕ Yeni Kontrol Maddesi Ekle';
+    
+    // Populate building dropdown
+    populateChecklistBuildingDropdown();
+    
+    openModal('checklistItemModal');
+}
+
+async function populateChecklistBuildingDropdown() {
+    const buildings = await getBuildings();
+    const select = document.getElementById('checklistItemBuildingId');
+    
+    if (select) {
+        select.innerHTML = '<option value="">Bina Seçin</option>';
+        buildings.forEach(building => {
+            const option = document.createElement('option');
+            option.value = building.id;
+            option.textContent = `${building.icon} ${building.name}`;
+            select.appendChild(option);
+        });
     }
 }
 
-// Kontrol maddesini düzenle
-function editChecklistItem(index) {
-    const buildingId = document.getElementById('currentBuildingId').value;
-    const checklists = getBuildingChecklists(buildingId);
+async function saveChecklistItem(event) {
+    event.preventDefault();
     
-    const newText = prompt('Kontrol maddesini düzenleyin:', checklists[index]);
+    const itemId = document.getElementById('checklistItemId').value;
+    const buildingId = document.getElementById('checklistItemBuildingId').value;
+    const itemText = document.getElementById('checklistItemText').value.trim();
+    const itemOrder = document.getElementById('checklistItemOrder').value;
+    const isActive = document.getElementById('checklistItemActive').checked;
     
-    if (newText && newText.trim()) {
-        checklists[index] = newText.trim();
-        saveBuildingChecklists(buildingId, checklists);
-        displayBuildingChecklists(buildingId);
-        showToast('Kontrol maddesi güncellendi!', 'success');
-    }
-}
-
-// Kontrol maddesini sil
-function deleteChecklistItem(index) {
-    const buildingId = document.getElementById('currentBuildingId').value;
-    const checklists = getBuildingChecklists(buildingId);
-    
-    if (confirm('Bu kontrol maddesini silmek istediğinizden emin misiniz?')) {
-        checklists.splice(index, 1);
-        saveBuildingChecklists(buildingId, checklists);
-        displayBuildingChecklists(buildingId);
-        showToast('Kontrol maddesi silindi!', 'success');
-    }
-}
-
-// Kontrol maddesini taşı
-function moveChecklistItem(index, direction) {
-    const buildingId = document.getElementById('currentBuildingId').value;
-    const checklists = getBuildingChecklists(buildingId);
-    
-    const newIndex = index + direction;
-    if (newIndex >= 0 && newIndex < checklists.length) {
-        [checklists[index], checklists[newIndex]] = [checklists[newIndex], checklists[index]];
-        saveBuildingChecklists(buildingId, checklists);
-        displayBuildingChecklists(buildingId);
-    }
-}
-
-// Kontrol sayfasındaki buildingData'yı güncelle
-function updateBuildingDataInControlPage() {
-    // Bu fonksiyon kontrol.html sayfasını günceller
-    // Gerçek zamanlı senkronizasyon için
-    console.log('Building data updated in localStorage');
-}
-
-// ==================== Dashboard İstatistikleri ====================
-
-function updateDashboardStats() {
-    // Kullanıcı sayısı
-    const users = getUsers();
-    const userCount = document.getElementById('userCount');
-    if (userCount) userCount.textContent = users.length;
-    
-    // Bina sayısı
-    const buildings = getBuildings();
-    const buildingCount = document.getElementById('buildingCount');
-    if (buildingCount) buildingCount.textContent = buildings.filter(b => b.active).length;
-    
-    // Toplam kontrol sayısı
-    let totalControls = 0;
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
-        if (key.startsWith('kontrol_') && !key.includes('index')) {
-            totalControls++;
-        }
-    });
-    const controlCount = document.getElementById('controlCount');
-    if (controlCount) controlCount.textContent = totalControls;
-    
-    // Bugünkü kontroller
-    const today = new Date().toISOString().split('T')[0];
-    let todayControls = 0;
-    keys.forEach(key => {
-        if (key.includes(today)) {
-            todayControls++;
-        }
-    });
-    const todayControlCount = document.getElementById('todayControlCount');
-    if (todayControlCount) todayControlCount.textContent = todayControls;
-}
-
-// ==================== EXPORT / IMPORT SİSTEMİ ====================
-
-// Tüm verileri dışa aktar
-function exportData() {
-    try {
-        const exportData = {
-            exportDate: new Date().toISOString(),
-            version: '1.0',
-            facilityName: 'Bulancak Atıksu Arıtma Tesisi',
-            data: {}
-        };
-        
-        // LocalStorage'daki tüm verileri topla
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            const value = localStorage.getItem(key);
-            
-            try {
-                // JSON parse edilebilir mi kontrol et
-                exportData.data[key] = JSON.parse(value);
-            } catch (e) {
-                // Plain text olarak kaydet
-                exportData.data[key] = value;
-            }
-        }
-        
-        // JSON dosyası oluştur
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        // İndirme linki oluştur
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Dosya adı: bulancak_yedek_2025-12-31_14-30.json
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-        link.download = `bulancak_yedek_${dateStr}_${timeStr}.json`;
-        
-        // İndir
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        showToast(`✅ Veriler başarıyla dışa aktarıldı! (${Object.keys(exportData.data).length} kayıt)`, 'success');
-        
-    } catch (error) {
-        console.error('Export hatası:', error);
-        showToast('❌ Veri dışa aktarma sırasında hata oluştu!', 'error');
-    }
-}
-
-// Verileri içe aktar
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    if (!file.name.endsWith('.json')) {
-        showToast('❌ Lütfen geçerli bir JSON dosyası seçin!', 'error');
+    if (!buildingId || !itemText) {
+        showError('Bina ve madde metni zorunludur!');
         return;
     }
     
-    const reader = new FileReader();
+    showLoading(itemId ? 'Madde güncelleniyor...' : 'Madde ekleniyor...');
     
-    reader.onload = function(e) {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            
-            // Veri yapısını kontrol et
-            if (!importedData.data || typeof importedData.data !== 'object') {
-                throw new Error('Geçersiz veri formatı');
-            }
-            
-            // Onay iste
-            const recordCount = Object.keys(importedData.data).length;
-            const confirmed = confirm(
-                `${recordCount} kayıt içeren yedek dosyası bulundu.\n\n` +
-                `Yedek Tarihi: ${new Date(importedData.exportDate).toLocaleString('tr-TR')}\n` +
-                `Tesis: ${importedData.facilityName}\n\n` +
-                `⚠️ Mevcut veriler üzerine yazılacak!\n\n` +
-                `Devam etmek istiyor musunuz?`
-            );
-            
-            if (!confirmed) {
-                showToast('ℹ️ İçe aktarma iptal edildi', 'info');
-                return;
-            }
-            
-            // Verileri geri yükle
-            let successCount = 0;
-            let errorCount = 0;
-            
-            Object.keys(importedData.data).forEach(key => {
-                try {
-                    const value = importedData.data[key];
-                    const valueStr = typeof value === 'object' 
-                        ? JSON.stringify(value) 
-                        : value;
-                    localStorage.setItem(key, valueStr);
-                    successCount++;
-                } catch (error) {
-                    console.error(`${key} anahtarı yüklenemedi:`, error);
-                    errorCount++;
-                }
-            });
-            
-            showToast(
-                `✅ İçe aktarma tamamlandı!\n` +
-                `Başarılı: ${successCount} kayıt\n` +
-                `${errorCount > 0 ? `Hata: ${errorCount} kayıt` : ''}`, 
-                'success'
-            );
-            
-            // Sayfayı yenile
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-            
-        } catch (error) {
-            console.error('Import hatası:', error);
-            showToast('❌ Dosya okunamadı veya geçersiz format!', 'error');
+    const data = {
+        building_id: buildingId,
+        item_text: itemText,
+        item_order: parseInt(itemOrder) || 0,
+        is_active: isActive
+    };
+    
+    try {
+        let response;
+        
+        if (itemId) {
+            response = await API.put(`/checklist/index.php?id=${itemId}`, data, API.getToken());
+        } else {
+            response = await API.post('/checklist/index.php', data, API.getToken());
         }
-    };
-    
-    reader.onerror = function() {
-        showToast('❌ Dosya okuma hatası!', 'error');
-    };
-    
-    reader.readAsText(file);
-    
-    // Input'u temizle (aynı dosya tekrar seçilebilsin)
-    event.target.value = '';
+        
+        if (response.success) {
+            showSuccess(itemId ? 'Madde güncellendi!' : 'Madde eklendi!');
+            closeModal('checklistItemModal');
+            loadChecklistItems();
+        } else {
+            showError(response.message || 'İşlem başarısız');
+        }
+    } catch (error) {
+        showError('Sunucu hatası: ' + error.message);
+    }
 }
 
-// Tüm verileri temizle
-function clearAllData() {
-    const confirmed = confirm(
-        '⚠️ DİKKAT! TÜM VERİLER SİLİNECEK!\n\n' +
-        'Bu işlem geri alınamaz!\n' +
-        '• Tüm kullanıcılar\n' +
-        '• Tüm binalar\n' +
-        '• Tüm kontrol kayıtları\n' +
-        '• Tüm ayarlar\n\n' +
-        'Devam etmek istediğinizden EMİN MİSİNİZ?'
-    );
+async function editChecklistItem(itemId) {
+    showLoading('Madde bilgileri yükleniyor...');
     
-    if (!confirmed) return;
-    
-    // İkinci onay
-    const doubleCheck = confirm('Son kez soruyoruz: TÜM VERİLER SİLİNSİN Mİ?');
-    
-    if (!doubleCheck) {
-        showToast('ℹ️ İşlem iptal edildi', 'info');
+    try {
+        const response = await API.get('/checklist/index.php', API.getToken());
+        const item = response.items.find(i => i.id === itemId);
+        
+        hideLoading();
+        
+        if (!item) {
+            showError('Madde bulunamadı!');
+            return;
+        }
+        
+        document.getElementById('checklistItemId').value = item.id;
+        document.getElementById('checklistItemBuildingId').value = item.building_id;
+        document.getElementById('checklistItemText').value = item.item_text;
+        document.getElementById('checklistItemOrder').value = item.item_order;
+        document.getElementById('checklistItemActive').checked = item.is_active;
+        
+        await populateChecklistBuildingDropdown();
+        document.getElementById('checklistItemBuildingId').value = item.building_id;
+        
+        document.getElementById('checklistItemModalTitle').textContent = '✏️ Kontrol Maddesi Düzenle';
+        openModal('checklistItemModal');
+    } catch (error) {
+        hideLoading();
+        showError('Madde bilgileri yüklenemedi: ' + error.message);
+    }
+}
+
+async function deleteChecklistItem(itemId) {
+    if (!confirm('Bu kontrol maddesini silmek istediğinizden emin misiniz?')) {
         return;
     }
     
+    showLoading('Madde siliniyor...');
+    
     try {
-        // LocalStorage'ı temizle
-        localStorage.clear();
-        sessionStorage.clear();
+        const response = await API.delete(`/checklist/index.php?id=${itemId}`, API.getToken());
         
-        showToast('✅ Tüm veriler silindi!', 'success');
-        
-        // Login sayfasına yönlendir
-        setTimeout(() => {
-            window.location.href = 'admin-login.html';
-        }, 1500);
-        
+        if (response.success) {
+            showSuccess('Madde başarıyla silindi!');
+            loadChecklistItems();
+        } else {
+            showError(response.message || 'Madde silinemedi');
+        }
     } catch (error) {
-        console.error('Temizleme hatası:', error);
-        showToast('❌ Veri temizleme sırasında hata oluştu!', 'error');
+        showError('Sunucu hatası: ' + error.message);
+    }
+}
+
+// ============================================
+// SAYFA YÜKLENİNCE
+// ============================================
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminPage);
+} else {
+    initAdminPage();
+}
+
+async function initAdminPage() {
+    const path = window.location.pathname;
+    
+    if (path.includes('admin-login.html')) {
+        // Login sayfası - form submit
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLogin);
+        }
+    } else if (path.includes('admin.html')) {
+        // Admin panel - session kontrol
+        const user = await checkAdminSession();
+        
+        if (!user) {
+            // Session yoksa veya geçersizse, fonksiyondan çık
+            return;
+        }
+        
+        // Dashboard yükle
+        loadDashboard();
+        
+        // Tabloları yükle
+        displayUsers();
+        displayBuildings();
+        
+        // Form submit handlers
+        const userForm = document.getElementById('userForm');
+        if (userForm) {
+            userForm.addEventListener('submit', saveUser);
+        }
+        
+        const buildingForm = document.getElementById('buildingForm');
+        if (buildingForm) {
+            buildingForm.addEventListener('submit', saveBuilding);
+        }
     }
 }

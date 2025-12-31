@@ -6,6 +6,7 @@
     <title>Admin Panel - Bulancak Atıksu Arıtma Tesisi</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/admin.css">
+    <script src="config.js"></script>
 </head>
 <body class="admin-body">
     
@@ -42,6 +43,18 @@
                 <a href="#controls" class="menu-link" onclick="showSection('controls', event)">
                     <span class="menu-icon">📋</span>
                     <span class="menu-text">Kontrol Kayıtları</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#statistics" class="menu-link" onclick="showSection('statistics', event)">
+                    <span class="menu-icon">📈</span>
+                    <span class="menu-text">İstatistikler</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#checklist" class="menu-link" onclick="showSection('checklist', event)">
+                    <span class="menu-icon">✅</span>
+                    <span class="menu-text">Kontrol Maddeleri</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -278,6 +291,135 @@
             </div>
         </section>
 
+        <!-- Statistics Section -->
+        <section id="statisticsSection" class="admin-section" style="display: none;">
+            <div class="admin-header">
+                <div class="header-left">
+                    <h1>📈 İstatistikler ve Raporlar</h1>
+                    <div class="breadcrumb">
+                        <a href="#dashboard" onclick="showSection('dashboard', event)">Ana Sayfa</a> / İstatistikler
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-btn" onclick="loadStatistics()">
+                        🔄 Yenile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detailed Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">📋</div>
+                        <span>Toplam Kontrol</span>
+                    </div>
+                    <div class="stat-value" id="stats_total_controls">0</div>
+                    <div class="stat-footer">
+                        <span class="trend-up">Bu ay: <span id="stats_monthly_controls">0</span></span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">✅</div>
+                        <span>Tamamlanma Oranı</span>
+                    </div>
+                    <div class="stat-value" id="stats_avg_completion">0%</div>
+                    <div class="stat-footer">
+                        <span class="trend-neutral">Ortalama değer</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">🏢</div>
+                        <span>Aktif Binalar</span>
+                    </div>
+                    <div class="stat-value" id="stats_active_buildings">0</div>
+                    <div class="stat-footer">
+                        <span class="trend-neutral">Toplam bina sayısı</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon">👥</div>
+                        <span>Aktif Kullanıcılar</span>
+                    </div>
+                    <div class="stat-value" id="stats_active_users">0</div>
+                    <div class="stat-footer">
+                        <span class="trend-neutral">Toplam kullanıcı</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="content-section">
+                <h2 class="section-title">📊 Bina Bazında Kontrol İstatistikleri</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Bina Adı</th>
+                            <th>Toplam Kontrol</th>
+                            <th>Son Kontrol</th>
+                            <th>Ort. Tamamlanma</th>
+                        </tr>
+                    </thead>
+                    <tbody id="buildingStatsTable">
+                        <tr>
+                            <td colspan="4" class="empty-state">
+                                <div class="empty-state-icon">📊</div>
+                                <h3>İstatistikler yükleniyor...</h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Checklist Items Management Section -->
+        <section id="checklistSection" class="admin-section" style="display: none;">
+            <div class="admin-header">
+                <div class="header-left">
+                    <h1>✅ Kontrol Maddeleri Yönetimi</h1>
+                    <div class="breadcrumb">
+                        <a href="#dashboard" onclick="showSection('dashboard', event)">Ana Sayfa</a> / Kontrol Maddeleri
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-btn" onclick="openAddChecklistItemModal()">
+                        ➕ Yeni Madde Ekle
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Kontrol Maddeleri Listesi</h2>
+                    <div class="section-actions">
+                        <select id="checklistBuildingFilter" onchange="filterChecklistItems()" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                            <option value="">Tüm Binalar</option>
+                        </select>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Sıra</th>
+                            <th>Bina</th>
+                            <th>Kontrol Maddesi</th>
+                            <th style="width: 100px;">Durum</th>
+                            <th style="width: 200px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checklistTableBody">
+                        <!-- JavaScript ile doldurulacak -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Settings Section -->
         <section id="settingsSection" class="admin-section" style="display: none;">
             <div class="admin-header">
@@ -418,11 +560,11 @@
             </div>
             <form id="buildingForm" onsubmit="saveBuilding(event)">
                 <div class="modal-body">
-                    <input type="hidden" id="buildingId">
+                    <input type="hidden" id="buildingIdHidden">
                     
                     <div class="form-group">
-                        <label for="buildingIdInput">🆔 Bina ID (benzersiz) *</label>
-                        <input type="text" id="buildingIdInput" placeholder="Örn: pompaj_istasyonu" required>
+                        <label for="buildingId">🆔 Bina ID (benzersiz) *</label>
+                        <input type="text" id="buildingId" placeholder="Örn: pompaj_istasyonu" required>
                         <small style="color: #666;">Küçük harf, rakam ve alt çizgi kullanın</small>
                     </div>
 
@@ -457,7 +599,51 @@
         </div>
     </div>
 
-    <!-- Checklist Modal -->
+    <!-- Checklist Item Modal (for adding/editing individual items) -->
+    <div id="checklistItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="checklistItemModalTitle">➕ Yeni Kontrol Maddesi Ekle</h2>
+                <button class="modal-close" onclick="closeModal('checklistItemModal')">✕</button>
+            </div>
+            <form id="checklistItemForm" onsubmit="saveChecklistItem(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="checklistItemId">
+                    
+                    <div class="form-group">
+                        <label for="checklistItemBuildingId">🏢 Bina *</label>
+                        <select id="checklistItemBuildingId" required>
+                            <option value="">Bina Seçin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="checklistItemText">📝 Kontrol Maddesi *</label>
+                        <textarea id="checklistItemText" rows="3" placeholder="Örn: Elektrik paneli kontrol edildi" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="checklistItemOrder">🔢 Sıra Numarası</label>
+                        <input type="number" id="checklistItemOrder" placeholder="Örn: 1" min="1">
+                        <small style="color: #666;">Boş bırakılırsa otomatik sıra atanır</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="checklistItemActive" checked style="width: 20px; height: 20px;">
+                            <span>✅ Aktif (Kontrolde görünür)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal('checklistItemModal')">❌ İptal</button>
+                    <button type="submit" class="btn btn-primary">💾 Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Checklist Modal (existing - for viewing building's items) -->
     <div id="checklistModal" class="modal">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
@@ -496,70 +682,17 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast">
         <span id="toastIcon">✅</span>
-        <span id="toastMessage">İşlem başarılı!</span>
+<span id="toastMessage">İşlem başarılı!</span>
     </div>
 
+    <script src="config.js"></script>
     <script src="js/admin.js"></script>
     <script>
-        // Session kontrolü
-        const session = checkAdminSession();
-        if (session) {
-            document.getElementById('currentUserName').textContent = session.fullName;
-            document.getElementById('currentUserRole').textContent = session.role === 'admin' ? 'Yönetici' : session.role;
-            document.getElementById('userAvatar').textContent = session.fullName.charAt(0).toUpperCase();
-        }
-
         // Sayfa yüklendiğinde
         window.onload = function() {
-            // İlk kullanıcı ve binaları oluştur (eğer yoksa)
-            initializeDefaultData();
-            
-            showSection('dashboard');
-            updateDashboardStats();
-            
-            // Badge'leri güncelle
-            const users = getUsers();
-            const buildings = getBuildings();
-            document.getElementById('usersBadge').textContent = users.length;
-            document.getElementById('buildingsBadge').textContent = buildings.filter(b => b.active).length;
+            initAdminPage();
         };
         
-        // Default verileri oluştur
-        function initializeDefaultData() {
-            // Default admin kullanıcısını oluştur (eğer yoksa)
-            let users = getUsers();
-            if (users.length === 0) {
-                const defaultUser = {
-                    id: 'user_' + Date.now(),
-                    username: 'admin',
-                    password: btoa('admin123'),
-                    fullName: 'Admin Kullanıcı',
-                    email: 'admin@example.com',
-                    role: 'admin',
-                    createdAt: new Date().toISOString(),
-                    lastLogin: new Date().toISOString()
-                };
-                users.push(defaultUser);
-                saveUsers(users);
-            }
-            
-            // Default binaları oluştur (eğer yoksa)
-            let buildings = getBuildings();
-            if (buildings.length === 0) {
-                const defaultBuildings = [
-                    { id: 'giris', name: 'Giriş', icon: '🚪', description: 'Tesis giriş kontrol noktası', active: true, createdAt: new Date().toISOString() },
-                    { id: 'kum_yag', name: 'Kum ve Yağ Tutucu', icon: '🏗️', description: 'Kum ve yağ arıtma ünitesi', active: true, createdAt: new Date().toISOString() },
-                    { id: 'idari', name: 'İdari Bina', icon: '🏢', description: 'Yönetim ve ofis alanı', active: true, createdAt: new Date().toISOString() },
-                    { id: 'blower', name: 'Blower Odası', icon: '💨', description: 'Havalandırma sistemi', active: true, createdAt: new Date().toISOString() },
-                    { id: 'test1', name: 'Test Oda 1', icon: '🧪', description: 'Test ve analiz laboratuvarı 1', active: true, createdAt: new Date().toISOString() },
-                    { id: 'test2', name: 'Test Oda 2', icon: '🔬', description: 'Test ve analiz laboratuvarı 2', active: true, createdAt: new Date().toISOString() },
-                    { id: 'test3', name: 'Test Oda 3', icon: '⚗️', description: 'Test ve analiz laboratuvarı 3', active: true, createdAt: new Date().toISOString() },
-                    { id: 'test4', name: 'Test Oda 4', icon: '🧬', description: 'Test ve analiz laboratuvarı 4', active: true, createdAt: new Date().toISOString() }
-                ];
-                saveBuildings(defaultBuildings);
-            }
-        }
-
         // Section göster/gizle
         function showSection(sectionName, event) {
             if (event) {
@@ -594,7 +727,18 @@
             } else if (sectionName === 'buildings') {
                 displayBuildings();
             } else if (sectionName === 'dashboard') {
-                updateDashboardStats();
+                loadDashboard();
+            } else if (sectionName === 'statistics') {
+                loadStatistics();
+            } else if (sectionName === 'checklist') {
+                loadChecklistItems();
+            }
+        }
+        
+        // Logout
+        function adminLogout() {
+            if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+                handleLogout();
             }
         }
     </script>

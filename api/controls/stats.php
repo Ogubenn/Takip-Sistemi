@@ -1,8 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/auth.php';
 
-$user = requireAuth();
+// Public endpoint - no authentication required
 $db = getDB();
 
 try {

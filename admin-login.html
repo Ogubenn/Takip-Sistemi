@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Admin Girişi - Bulancak Atıksu Arıtma Tesisi</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="config.js"></script>
     <style>
         body {
             display: flex;
@@ -293,28 +294,9 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
+    <script src="js/admin.js"></script>
     <script>
-        // Varsayılan admin hesabını oluştur (ilk kurulumda)
-        function initializeAdmin() {
-            const users = localStorage.getItem('admin_users');
-            if (!users) {
-                const defaultAdmin = {
-                    id: 'admin-1',
-                    username: 'admin',
-                    password: btoa('admin123'), // Base64 encoding (basit şifreleme)
-                    fullName: 'Sistem Yöneticisi',
-                    email: 'admin@bulancak.bel.tr',
-                    role: 'admin',
-                    createdAt: new Date().toISOString(),
-                    lastLogin: null
-                };
-                localStorage.setItem('admin_users', JSON.stringify([defaultAdmin]));
-            }
-        }
-
-        // Sayfa yüklendiğinde admin hesabını oluştur
-        initializeAdmin();
-
         // Şifre göster/gizle
         function togglePassword() {
             const passwordInput = document.getElementById('password');
@@ -329,79 +311,14 @@
             }
         }
 
-        // Hata mesajı göster
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-            
-            setTimeout(() => {
-                errorDiv.classList.remove('show');
-            }, 5000);
-        }
-
-        // Login işlemi
-        function handleLogin(event) {
-            event.preventDefault();
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
-            
-            // Kullanıcıları kontrol et
-            const users = JSON.parse(localStorage.getItem('admin_users') || '[]');
-            const user = users.find(u => 
-                u.username === username && 
-                u.password === btoa(password)
-            );
-            
-            if (user) {
-                // Giriş başarılı
-                user.lastLogin = new Date().toISOString();
-                
-                // Kullanıcı bilgilerini güncelle
-                const userIndex = users.findIndex(u => u.id === user.id);
-                users[userIndex] = user;
-                localStorage.setItem('admin_users', JSON.stringify(users));
-                
-                // Session oluştur
-                const session = {
-                    userId: user.id,
-                    username: user.username,
-                    fullName: user.fullName,
-                    role: user.role,
-                    loginTime: new Date().toISOString(),
-                    rememberMe: rememberMe
-                };
-                
-                if (rememberMe) {
-                    localStorage.setItem('admin_session', JSON.stringify(session));
-                } else {
-                    sessionStorage.setItem('admin_session', JSON.stringify(session));
-                }
-                
-                // Admin panele yönlendir
-                window.location.href = 'admin.html';
-            } else {
-                // Giriş başarısız
-                showError('❌ Kullanıcı adı veya şifre hatalı!');
-                document.getElementById('password').value = '';
-                document.getElementById('password').focus();
-            }
-        }
-
         // Şifremi unuttum
         function showForgotPassword() {
             alert('🔐 Şifre sıfırlama özelliği yakında eklenecektir.\n\nDemo hesap bilgileri:\nKullanıcı: admin\nŞifre: admin123');
         }
 
-        // Zaten giriş yapılmış mı kontrol et
+        // Sayfa yüklendiğinde
         window.onload = function() {
-            const session = localStorage.getItem('admin_session') || sessionStorage.getItem('admin_session');
-            if (session) {
-                // Zaten giriş yapılmış, admin panele yönlendir
-                window.location.href = 'admin.html';
-            }
+            initAdminPage();
             
             // Kullanıcı adı alanına focus
             document.getElementById('username').focus();

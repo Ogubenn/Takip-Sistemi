@@ -6,7 +6,7 @@ $db = getDB();
 
 // GET controls with filtering
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $user = requireAuth();
+    // Public endpoint - no auth required for reading
     
     $buildingId = $_GET['buildingId'] ?? null;
     $startDate = $_GET['startDate'] ?? null;
@@ -65,9 +65,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
 }
 
-// POST new control (Operator+)
+// POST new control (Public - no auth required)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user = requireOperator();
+    // Optional: Get user from token if available, otherwise anonymous
+    $userId = null;
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+        try {
+            $token = $matches[1];
+            $decoded = validateToken($token);
+            $userId = $decoded->data->userId ?? null;
+        } catch (Exception $e) {
+            // No valid token - continue as anonymous
+        }
+    }
+    
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!isset($input['buildingId']) || !isset($input['controlDate']) || !isset($input['checkedItems'])) {
@@ -83,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare("INSERT INTO control_records (building_id, user_id, control_date, checked_items, notes, checked_count, completion_rate) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $input['buildingId'],
-            $user['id'],
+            $userId, // Can be NULL for anonymous
             $input['controlDate'],
             json_encode($input['checkedItems']),
             $input['notes'] ?? '',
