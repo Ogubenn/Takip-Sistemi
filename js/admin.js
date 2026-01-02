@@ -248,13 +248,16 @@ async function displayUsers() {
         return;
     }
     
-    tbody.innerHTML = users.map(user => `
-        <tr>
+    tbody.innerHTML = users.map(user => {
+        const isInactive = user.is_active == 0 || user.is_active === false;
+        return `
+        <tr ${isInactive ? 'style="opacity: 0.5; background-color: #f8f9fa;"' : ''}>
             <td>
-                <div class="user-avatar" style="display: inline-flex; width: 35px; height: 35px; font-size: 1em; margin-right: 10px;">
+                <div class="user-avatar" style="display: inline-flex; width: 35px; height: 35px; font-size: 1em; margin-right: 10px; ${isInactive ? 'opacity: 0.6;' : ''}">
                     ${user.full_name.charAt(0).toUpperCase()}
                 </div>
                 <strong>${user.full_name}</strong>
+                ${isInactive ? '<span style="color: #dc3545; font-size: 0.85em; margin-left: 5px;">🚫 Devre Dışı</span>' : ''}
             </td>
             <td>${user.username}</td>
             <td>${user.email || '-'}</td>
@@ -268,12 +271,16 @@ async function displayUsers() {
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="action-btn btn-edit" onclick="editUser(${user.id})">✏️ Düzenle</button>
-                    <button class="action-btn btn-delete" onclick="deleteUser(${user.id})">🗑️ Sil</button>
+                    <button class="action-btn btn-edit" onclick="editUser(${user.id})" ${isInactive ? 'disabled title="Önce aktif edin"' : ''}>✏️ Düzenle</button>
+                    ${isInactive 
+                        ? '<button class="action-btn btn-success" onclick="reactivateUser(' + user.id + ')">✅ Aktif Et</button>'
+                        : '<button class="action-btn btn-delete" onclick="deleteUser(' + user.id + ')">🗑️ Devre Dışı</button>'
+                    }
                 </div>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Yeni kullanıcı ekle modal aç
@@ -318,22 +325,52 @@ async function editUser(userId) {
 
 // Kullanıcı sil
 async function deleteUser(userId) {
-    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
+    if (!confirm('Bu kullanıcıyı devre dışı bırakmak istediğinizden emin misiniz?\n\nKullanıcı silinmez, sadece devre dışı kalır.')) {
         return;
     }
     
-    showLoading('Kullanıcı siliniyor...');
+    showLoading('Kullanıcı devre dışı bırakılıyor...');
     
     try {
         const response = await API.delete(`/users/index.php?id=${userId}`, API.getToken());
         
         if (response.success) {
-            showSuccess('Kullanıcı başarıyla silindi!');
+            showSuccess('Kullanıcı başarıyla devre dışı bırakıldı!');
             displayUsers();
+            loadDashboard();
         } else {
-            showError(response.message || 'Kullanıcı silinemedi');
+            hideLoading();
+            showError(response.message || 'İşlem başarısız');
         }
     } catch (error) {
+        hideLoading();
+        showError('Sunucu hatası: ' + error.message);
+    }
+}
+
+// Kullanıcıyı tekrar aktif et
+async function reactivateUser(userId) {
+    if (!confirm('Bu kullanıcıyı tekrar aktif etmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    showLoading('Kullanıcı aktif ediliyor...');
+    
+    try {
+        const response = await API.put(`/users/index.php?id=${userId}`, {
+            is_active: 1
+        }, API.getToken());
+        
+        if (response.success) {
+            showSuccess('Kullanıcı başarıyla aktif edildi!');
+            displayUsers();
+            loadDashboard();
+        } else {
+            hideLoading();
+            showError(response.message || 'İşlem başarısız');
+        }
+    } catch (error) {
+        hideLoading();
         showError('Sunucu hatası: ' + error.message);
     }
 }

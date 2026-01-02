@@ -23,58 +23,52 @@ COMMENT 'Anonim kontroller için NULL olabilir. Frontend user_id göndermezse NU
 -- ============================================
 -- Sorun: Bina fotoğrafı yükleme özelliği eklenmiş ama veritabanında kolon yok
 -- Çözüm: image_path kolonunu ekle
+-- NOT: Eğer kolon zaten varsa hata verecektir, bu normaldir
 
 ALTER TABLE buildings 
-ADD COLUMN IF NOT EXISTS image_path VARCHAR(500) NULL 
-AFTER icon 
-COMMENT 'Bina fotoğraf dosya yolu. Örnek: assets/images/buildings/building123.jpg';
+ADD COLUMN image_path VARCHAR(500) NULL COMMENT 'Bina fotoğraf dosya yolu. Örnek: assets/images/buildings/building123.jpg' 
+AFTER icon;
 
 -- ============================================
 -- 3. users tablosuna timestamp kolonları ekle
 -- ============================================
 -- Sorun: created_at ve updated_at kolonları frontend'te gösterilemiyor
--- Çözüm: Bu kolonları ekle (yoksa)
+-- Çözüm: Bu kolonları ekle
+-- NOT: Eğer kolonlar zaten varsa hata verecektir, bu normaldir
 
 ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
-COMMENT 'Kullanıcının sisteme eklenme tarihi',
-ADD COLUMN IF NOT EXISTS updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
-COMMENT 'Kullanıcının son güncellenme tarihi';
+ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Kullanıcının sisteme eklenme tarihi',
+ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Kullanıcının son güncellenme tarihi';
 
 -- ============================================
 -- 4. Performance için indexler ekle
 -- ============================================
 -- Bu indexler sorgu performansını önemli ölçüde artırır
+-- NOT: Eğer index zaten varsa hata verecektir, bu normaldir
 
 -- Control records tarih bazlı sorgular için
-CREATE INDEX IF NOT EXISTS idx_control_date 
-ON control_records(control_date)
-COMMENT 'Tarih bazlı sorgular için (istatistikler, takvim)';
+CREATE INDEX idx_control_date 
+ON control_records(control_date);
 
 -- Aktif kullanıcı kontrolü için
-CREATE INDEX IF NOT EXISTS idx_user_active 
-ON users(is_active)
-COMMENT 'Aktif kullanıcı listesi sorguları için';
+CREATE INDEX idx_user_active 
+ON users(is_active);
 
 -- Aktif bina kontrolü için
-CREATE INDEX IF NOT EXISTS idx_building_active 
-ON buildings(is_active)
-COMMENT 'Aktif bina listesi sorguları için';
+CREATE INDEX idx_building_active 
+ON buildings(is_active);
 
 -- Bina fotoğrafı var/yok kontrolü için
-CREATE INDEX IF NOT EXISTS idx_building_image 
-ON buildings(image_path)
-COMMENT 'Fotoğrafı olan binaları filtrelemek için';
+CREATE INDEX idx_building_image 
+ON buildings(image_path);
 
 -- Checklist item sıralaması için
-CREATE INDEX IF NOT EXISTS idx_checklist_order 
-ON checklist_items(building_id, item_order, is_active)
-COMMENT 'Checklist item sıralı listesi için';
+CREATE INDEX idx_checklist_order 
+ON checklist_items(building_id, item_order, is_active);
 
 -- User role bazlı sorgular için
-CREATE INDEX IF NOT EXISTS idx_user_role 
-ON users(role, is_active)
-COMMENT 'Role bazlı kullanıcı filtreleme için';
+CREATE INDEX idx_user_role 
+ON users(role, is_active);
 
 -- ============================================
 -- DOĞRULAMA SORULARI

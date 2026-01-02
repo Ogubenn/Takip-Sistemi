@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../config/api_helper.php';
 
 $db = getDB();
 
@@ -9,16 +10,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $user = requireAdmin();
     
     try {
-        $stmt = $db->query("SELECT id, username, full_name, email, role, is_active, last_login FROM users ORDER BY id DESC");
+        // Option to filter by is_active (default: show all)
+        $filterActive = isset($_GET['active_only']) && $_GET['active_only'] === 'true';
+        
+        if ($filterActive) {
+            $stmt = $db->query("SELECT id, username, full_name, email, role, is_active, last_login FROM users WHERE is_active = 1 ORDER BY id DESC");
+        } else {
+            $stmt = $db->query("SELECT id, username, full_name, email, role, is_active, last_login FROM users ORDER BY is_active DESC, id DESC");
+        }
+        
         $users = $stmt->fetchAll();
         
         echo json_encode([
             'success' => true,
-            'users' => $users
+            'users' => $users,
+            'total' => count($users)
         ]);
     } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Sunucu hatası: ' . $e->getMessage()]);
+        apiServerError('Kullanıcılar yüklenemedi: ' . $e->getMessage(), $e);
     }
     exit;
 }
@@ -35,8 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     try {
-        // Check if username exists (case-insensitive)
-        $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)");
+        // Check if username exists (case-insensitive) - sadece aktif kullanıcılarda
+        $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND is_active = 1");
         $stmt->execute([$input['username']]);
         if ($stmt->fetch()) {
             http_response_code(400);
@@ -44,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        // Check if email exists (if provided, case-insensitive)
+        // Check if email exists (if provided, case-insensitive) - sadece aktif kullanıcılarda
         if (!empty($input['email'])) {
-            $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?)");
+            $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND is_active = 1");
             $stmt->execute([$input['email']]);
             if ($stmt->fetch()) {
                 http_response_code(400);
@@ -115,8 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $params = [];
         
         if (isset($input['username'])) {
-            // Check if username already exists (for other users)
-            $stmt = $db->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
+            // Check if username already exists (for other active users)
+            $stmt = $db->prepare("SELECT id FROM users WHERE username = ? AND id != ? AND is_active = 1");
             $stmt->execute([$input['username'], $userId]);
             if ($stmt->fetch()) {
                 http_response_code(400);
@@ -138,9 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         }
         
         if (isset($input['email'])) {
-            // Check if email already exists (for other users)
+            // Check if email already exists (for other active users)
             if (!empty($input['email'])) {
-                $stmt = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+                $stmt = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ? AND is_active = 1");
                 $stmt->execute([$input['email'], $userId]);
                 if ($stmt->fetch()) {
                     http_response_code(400);
@@ -191,42 +200,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     exit;
 }
 
-// DELETE user (Admin only)
+// DELETE user (Admin only) - SOFT DELETE
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $user = requireAdmin();
     $userId = $_GET['id'] ?? null;
     
     if (!$userId) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Kullanıcı ID gerekli']);
-        exit;
+        apiError('Kullanıcı ID gerekli', 400);
     }
     
     // Prevent deleting own account
     if ($user['id'] == $userId) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Kendi hesabınızı silemezsiniz']);
-        exit;
+        apiError('Kendi hesabınızı devre dışı bırakamazsınız', 400);
     }
     
     try {
-        $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+        // Check if user exists
+        $stmt = $db->prepare("SELECT id, username, is_active FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $targetUser = $stmt->fetch();
+        
+        if (!$targetUser) {
+            apiNotFound('Kullanıcı');
+        }
+        
+        if ($targetUser['is_active'] == 0) {
+            apiError('Bu kullanıcı zaten devre dışı', 400);
+        }
+        
+        // Soft delete: set is_active to 0
+        $stmt = $db->prepare("UPDATE users SET is_active = 0 WHERE id = ?");
         $stmt->execute([$userId]);
         
-        if ($stmt->rowCount() > 0) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Kullanıcı başarıyla silindi'
-            ]);
-        } else {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Kullanıcı bulunamadı']);
-        }
+        apiSuccess(
+            ['user_id' => $userId, 'username' => $targetUser['username']], 
+            'Kullanıcı başarıyla devre dışı bırakıldı'
+        );
     } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Sunucu hatası: ' . $e->getMessage()]);
+        apiServerError('Kullanıcı devre dışı bırakılamadı: ' . $e->getMessage(), $e);
     }
-    exit;
 }
 
 http_response_code(405);
