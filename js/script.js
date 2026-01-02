@@ -258,44 +258,74 @@ async function getStatistics() {
 // Index.html için - Bina listesini dinamik yükle
 async function loadBuildingsOnIndex() {
     const buildingList = document.querySelector('.building-list');
-    if (!buildingList) return;
-    
-    showLoading('Binalar yükleniyor...');
-    
-    const buildings = await getAllBuildings();
-    const todayStatus = await getTodayStatus();
-    
-    hideLoading();
-    
-    if (buildings.length === 0) {
-        buildingList.innerHTML = '<p style="text-align: center; padding: 40px;">Henüz bina eklenmemiş.</p>';
+    if (!buildingList) {
+        console.error('Building list container not found');
         return;
     }
     
-    buildingList.innerHTML = buildings.map(building => {
-        const isDone = todayStatus[building.id] || false;
-        return `
-            <div class="building-card ${isDone ? 'completed' : ''}" onclick="goToControl('${building.id}')">
-                <div class="building-icon">${building.icon}</div>
-                <h3>${building.name}</h3>
-                <p>${building.description || 'Kontrol için tıklayın'}</p>
-                ${isDone ? '<span class="completed-badge">✅ Tamamlandı</span>' : '<span class="pending-badge">⏳ Bekliyor</span>'}
-            </div>
-        `;
-    }).join('');
+    console.log('Loading buildings...');
+    showLoading('Binalar yükleniyor...');
     
-    // İstatistikleri güncelle
-    const completedCount = Object.values(todayStatus).filter(v => v).length;
-    const totalCount = buildings.length;
-    
-    const completedCountEl = document.getElementById('completedCount');
-    if (completedCountEl) {
-        completedCountEl.textContent = `${completedCount}/${totalCount}`;
-    }
-    
-    const todayDateEl = document.getElementById('todayDate');
-    if (todayDateEl) {
-        todayDateEl.textContent = formatDate(getTodayDate());
+    try {
+        const buildings = await getAllBuildings();
+        const todayStatus = await getTodayStatus();
+        
+        hideLoading();
+        
+        console.log('Buildings loaded:', buildings.length);
+        console.log('Today status:', todayStatus);
+        
+        // Sadece aktif binaları filtrele
+        const activeBuildings = buildings.filter(b => b.is_active == 1 || b.is_active === true);
+        
+        if (activeBuildings.length === 0) {
+            buildingList.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">Henüz aktif bina eklenmemiş.</p>';
+            return;
+        }
+        
+        // Sıralama - display_order'a göre
+        activeBuildings.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        
+        buildingList.innerHTML = activeBuildings.map(building => {
+            const isDone = todayStatus[building.id] || false;
+            
+            // Resim varsa resim, yoksa emoji göster
+            let iconHTML;
+            if (building.image_path) {
+                iconHTML = `<img src="/${building.image_path}" alt="${building.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />`;
+            } else {
+                iconHTML = building.icon || '🏢';
+            }
+            
+            return `
+                <div class="building-card ${isDone ? 'completed' : ''}" onclick="goToControl('${building.id}')">
+                    <div class="building-icon">${iconHTML}</div>
+                    <h3>${building.name}</h3>
+                    <p>${building.description || 'Kontrol için tıklayın'}</p>
+                    ${isDone ? '<span class="completed-badge">✅ Tamamlandı</span>' : '<span class="pending-badge">⏳ Bekliyor</span>'}
+                </div>
+            `;
+        }).join('');
+        
+        // İstatistikleri güncelle
+        const completedCount = Object.values(todayStatus).filter(v => v).length;
+        const totalCount = activeBuildings.length;
+        
+        const completedCountEl = document.getElementById('completedCount');
+        if (completedCountEl) {
+            completedCountEl.textContent = `${completedCount}/${totalCount}`;
+        }
+        
+        const todayDateEl = document.getElementById('todayDate');
+        if (todayDateEl) {
+            todayDateEl.textContent = formatDate(getTodayDate());
+        }
+        
+        console.log('Buildings rendered successfully');
+    } catch (error) {
+        hideLoading();
+        console.error('Error loading buildings:', error);
+        buildingList.innerHTML = '<p style="text-align: center; padding: 40px; color: #d32f2f;">Binalar yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.</p>';
     }
 }
 

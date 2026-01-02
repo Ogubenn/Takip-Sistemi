@@ -578,6 +578,16 @@
                         <input type="text" id="buildingIcon" placeholder="Örn: ⚙️" required maxlength="2">
                         <small style="color: #666;">Emoji seçmek için Windows + . tuşuna basın</small>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="buildingImage">🖼️ Bina Resmi (Opsiyonel)</label>
+                        <input type="file" id="buildingImage" accept="image/jpeg,image/png,image/gif,image/webp">
+                        <small style="color: #666;">JPG, PNG, GIF veya WEBP (Max 5MB). Resim yüklersen emoji yerine resim görünür.</small>
+                        <div id="buildingImagePreview" style="margin-top: 10px; display: none;">
+                            <img id="buildingImagePreviewImg" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;" />
+                            <button type="button" class="btn" style="margin-left: 10px;" onclick="removeBuildingImage()">🗑️ Resmi Sil</button>
+                        </div>
+                    </div>
 
                     <div class="form-group">
                         <label for="buildingDescription">📝 Açıklama</label>
@@ -685,7 +695,6 @@
 <span id="toastMessage">İşlem başarılı!</span>
     </div>
 
-    <script src="config.js"></script>
     <script src="js/admin.js"></script>
     <script>
         // Sayfa yüklendiğinde

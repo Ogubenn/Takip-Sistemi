@@ -237,9 +237,10 @@
     <script src="js/script.js"></script>
     <script>
         let allRecords = [];
+        let allBuildings = [];
 
         // Sayfa yüklendiğinde
-        window.onload = function() {
+        window.onload = async function() {
             // Varsayılan tarih aralığı: Son 30 gün
             const today = new Date();
             const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
@@ -247,61 +248,76 @@
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
             document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
             
-            loadAllRecords();
+            await loadBuildingsForFilter();
+            await loadAllRecords();
         };
 
-        // Tüm kayıtları yükle
-        function loadAllRecords() {
-            const buildings = {
-                giris: '🏢 Giriş Binası',
-                pompaj: '⚙️ Pompaj İstasyonu',
-                aritma: '💧 Arıtma Ünitesi',
-                jenerator: '🔌 Jeneratör Binası'
-            };
+        // Filtreleme için binaları yükle
+        async function loadBuildingsForFilter() {
+            showLoading('Binalar yükleniyor...');
+            
+            try {
+                const response = await API.get('/buildings/index.php');
+                
+                if (response.success) {
+                    allBuildings = response.buildings.filter(b => b.is_active);
+                    
+                    // Bina filtresini doldur
+                    const buildingFilter = document.getElementById('buildingFilter');
+                    buildingFilter.innerHTML = '<option value="all">Tüm Binalar</option>';
+                    
+                    allBuildings.forEach(building => {
+                        const option = document.createElement('option');
+                        option.value = building.id;
+                        option.textContent = `${building.icon} ${building.name}`;
+                        buildingFilter.appendChild(option);
+                    });
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                console.error('Binalar yüklenemedi:', error);
+            }
+        }
 
-            allRecords = [];
-
-            Object.keys(buildings).forEach(buildingId => {
-                const controls = getAllControls(buildingId);
-                controls.forEach(control => {
-                    if (control.data) {
-                        allRecords.push({
-                            buildingId: buildingId,
-                            buildingName: buildings[buildingId],
-                            ...control
-                        });
-                    }
-                });
-            });
-
-            // Tarihe göre sırala (yeniden eskiye)
-            allRecords.sort((a, b) => b.date.localeCompare(a.date));
-
-            filterRecords();
+        // Tüm kayıtları yükle (API'den)
+        async function loadAllRecords() {
+            showLoading('Kayıtlar yükleniyor...');
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const buildingFilter = document.getElementById('buildingFilter').value;
+            
+            try {
+                let url = '/controls/index.php?limit=100';
+                
+                if (startDate) url += `&startDate=${startDate}`;
+                if (endDate) url += `&endDate=${endDate}`;
+                if (buildingFilter && buildingFilter !== 'all') url += `&buildingId=${buildingFilter}`;
+                
+                const response = await API.get(url);
+                
+                hideLoading();
+                
+                if (response.success) {
+                    allRecords = response.controls || [];
+                    displayRecords(allRecords);
+                } else {
+                    showError('Kayıtlar yüklenemedi');
+                    displayRecords([]);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Kayıtlar yüklenemedi:', error);
+                showError('Kayıtlar yüklenirken hata oluştu: ' + error.message);
+                displayRecords([]);
+            }
         }
 
         // Kayıtları filtrele ve göster
         function filterRecords() {
-            const buildingFilter = document.getElementById('buildingFilter').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-
-            let filtered = allRecords;
-
-            // Bina filtresi
-            if (buildingFilter !== 'all') {
-                filtered = filtered.filter(r => r.buildingId === buildingFilter);
-            }
-
-            // Tarih filtresi
-            if (startDate) {
-                filtered = filtered.filter(r => r.date >= startDate);
-            }
-            if (endDate) {
-                filtered = filtered.filter(r => r.date <= endDate);
-            }
-
-            displayRecords(filtered);
+            loadAllRecords();
         }
 
         // Kayıtları göster
@@ -332,19 +348,19 @@
             const card = document.createElement('div');
             card.className = 'record-card';
 
-            const data = record.data;
-            const completionRate = data.completionRate || 0;
+            const checkedItems = JSON.parse(record.checked_items || '[]');
+            const completionRate = record.completion_rate || 0;
 
             card.innerHTML = `
                 <div class="record-header">
-                    <div class="record-title">${record.buildingName}</div>
-                    <div class="record-date">📅 ${formatDate(record.date)}</div>
+                    <div class="record-title">${record.building_icon || '🏢'} ${record.building_name || 'Bina'}</div>
+                    <div class="record-date">📅 ${formatDate(record.control_date)}</div>
                 </div>
 
                 <div class="record-stats">
                     <div class="stat-item">
                         <span class="stat-label">Tamamlanan:</span>
-                        <span class="stat-value">${data.checkedCount || 0}/${data.totalCount || 0}</span>
+                        <span class="stat-value">${record.checked_count || 0} madde</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Tamamlanma:</span>
@@ -352,12 +368,12 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Saat:</span>
-                        <span class="stat-value">${new Date(data.savedAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</span>
+                        <span class="stat-value">${new Date(record.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</span>
                     </div>
-                    ${data.completedBy ? `
+                    ${record.user_full_name ? `
                     <div class="stat-item">
                         <span class="stat-label">👤 Kontrol Eden:</span>
-                        <span class="stat-value">${data.completedBy}</span>
+                        <span class="stat-value">${record.user_full_name}</span>
                     </div>
                     ` : ''}
                 </div>
@@ -367,17 +383,17 @@
                 </div>
 
                 <div class="detail-list">
-                    ${data.checkedItems.map(item => `
-                        <div class="detail-item ${item.checked ? 'checked' : 'unchecked'}">
-                            ${item.checked ? '✓' : '✗'} ${item.label}
+                    ${checkedItems.map(item => `
+                        <div class="detail-item checked">
+                            ✓ ${item}
                         </div>
                     `).join('')}
                 </div>
 
-                ${data.notes ? `
+                ${record.notes ? `
                     <div class="record-notes">
                         <h4>📝 Notlar:</h4>
-                        <p>${data.notes}</p>
+                        <p>${record.notes}</p>
                     </div>
                 ` : ''}
             `;
@@ -395,7 +411,7 @@
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
             document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
             
-            filterRecords();
+            loadAllRecords();
         }
     </script>
 </body>

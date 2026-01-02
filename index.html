@@ -28,54 +28,19 @@
             </div>
 
             <div class="building-list">
-                <div class="building-card" onclick="goToControl('giris')">
-                    <div class="building-icon">🏢</div>
-                    <h3>Giriş Binası</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('kum_yag')">
-                    <div class="building-icon">🪨</div>
-                    <h3>Kum ve Yağ Tutucu</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('idari')">
-                    <div class="building-icon">🏗️</div>
-                    <h3>İdari Bina</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('blower')">
-                    <div class="building-icon">🌬️</div>
-                    <h3>Blower Odası</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('test1')">
-                    <div class="building-icon">🧪</div>
-                    <h3>Test Oda 1</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('test2')">
-                    <div class="building-icon">🧪</div>
-                    <h3>Test Oda 2</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('test3')">
-                    <div class="building-icon">🧪</div>
-                    <h3>Test Oda 3</h3>
-                    <p>Günlük kontrol listesi</p>
-                </div>
-
-                <div class="building-card" onclick="goToControl('test4')">
-                    <div class="building-icon">🧪</div>
-                    <h3>Test Oda 4</h3>
-                    <p>Günlük kontrol listesi</p>
+                <!-- Binalar JavaScript ile yüklenecek -->
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="width: 60px; height: 60px; border: 5px solid #f3f3f3; border-top: 5px solid #0f2862; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+                    <p style="color: #666; font-size: 16px;">Binalar yükleniyor...</p>
                 </div>
             </div>
+            
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
 
             <div class="quick-links">
                 <a href="gecmis.html" class="quick-link">

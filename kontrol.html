@@ -364,13 +364,10 @@
             const checkedItems = [];
             let checkedCount = 0;
             
-            checkboxes.forEach((checkbox, index) => {
+            checkboxes.forEach((checkbox) => {
                 if (checkbox.checked) {
-                    checkedItems.push({
-                        index: index,
-                        text: checkbox.nextElementSibling.textContent,
-                        checked: true
-                    });
+                    // Sadece text'i gönder
+                    checkedItems.push(checkbox.nextElementSibling.textContent.trim());
                     checkedCount++;
                 }
             });
@@ -380,10 +377,7 @@
             const result = await saveControlData(buildingId, {
                 date: getTodayDate(),
                 checkedItems: checkedItems,
-                notes: notes,
-                checkedCount: checkedCount,
-                totalCount: checkboxes.length,
-                completionRate: checkboxes.length > 0 ? Math.round((checkedCount / checkboxes.length) * 100) : 0
+                notes: notes
             });
             
             if (result) {

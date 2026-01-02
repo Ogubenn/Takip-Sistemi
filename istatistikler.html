@@ -179,6 +179,85 @@
         .summary-item:last-child {
             border-bottom: none;
         }
+
+        /* Takvim Stilleri */
+        .calendar-month {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-month-title {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            color: #666;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .calendar-day:hover:not(.empty) {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            cursor: default;
+        }
+
+        .calendar-day.future {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            color: #999;
+        }
+
+        .calendar-day.complete {
+            background: #28a745;
+            color: white;
+        }
+
+        .calendar-day.partial {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .calendar-day.none {
+            background: #dc3545;
+            color: white;
+        }
+
+        .calendar-day.today {
+            border: 3px solid #667eea;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -194,11 +273,17 @@
         <main style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
             
             <div class="period-selector">
-                <button class="period-btn active" onclick="changePeriod('7', this)">Son 7 Gün</button>
-                <button class="period-btn" onclick="changePeriod('30', this)">Son 30 Gün</button>
-                <button class="period-btn" onclick="changePeriod('90', this)">Son 90 Gün</button>
-                <button class="period-btn" onclick="changePeriod('all', this)">Tüm Zamanlar</button>
+                <button class="period-btn active" onclick="showTab('stats', this)">📊 İstatistikler</button>
+                <button class="period-btn" onclick="showTab('calendar', this)">📅 Takvim Görünümü</button>
             </div>
+
+            <div id="statsTab" style="display: block;">
+                <div class="period-selector" style="margin-top: 20px;">
+                    <button class="period-btn active" onclick="changePeriod('7', this)">Son 7 Gün</button>
+                    <button class="period-btn" onclick="changePeriod('30', this)">Son 30 Gün</button>
+                    <button class="period-btn" onclick="changePeriod('90', this)">Son 90 Gün</button>
+                    <button class="period-btn" onclick="changePeriod('all', this)">Tüm Zamanlar</button>
+                </div>
 
             <div class="stats-grid">
                 <div class="stat-box">
@@ -274,6 +359,47 @@
                     ← Ana Sayfaya Dön
                 </button>
             </div>
+            </div>
+            <!-- statsTab sonu -->
+
+            <!-- Takvim Sekmesi -->
+            <div id="calendarTab" style="display: none;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <button class="period-btn" onclick="changeCalendarYear(-1)">◀ Önceki Yıl</button>
+                    <span style="font-size: 1.5em; font-weight: 600; margin: 0 20px;" id="calendarYear">2026</span>
+                    <button class="period-btn" onclick="changeCalendarYear(1)">Sonraki Yıl ▶</button>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 20px; height: 20px; background: #28a745; border-radius: 3px;"></div>
+                        <span>Tam Kontrol (%80+)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 20px; height: 20px; background: #ffc107; border-radius: 3px;"></div>
+                        <span>Kısmi Kontrol</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 20px; height: 20px; background: #dc3545; border-radius: 3px;"></div>
+                        <span>Kontrol Yok</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 20px; height: 20px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 3px;"></div>
+                        <span>Gelecek</span>
+                    </div>
+                </div>
+
+                <div id="calendarContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Takvim ayları buraya yüklenecek -->
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
+                    <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                        ← Ana Sayfaya Dön
+                    </button>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -281,17 +407,193 @@
     <script>
         let currentPeriod = 7;
 
-        const buildings = {
-            giris: '🏢 Giriş Binası',
-            pompaj: '⚙️ Pompaj İstasyonu',
-            aritma: '💧 Arıtma Ünitesi',
-            jenerator: '🔌 Jeneratör Binası'
+        // Sayfa yüklendiğinde
+        window.onload = async function() {
+            await loadStatistics();
         };
 
-        // Sayfa yüklendiğinde
-        window.onload = function() {
+        // Periyot değiştir
+        function changePeriod(days, btn) {
+            // Sadece istatistik periyot butonlarını güncelle (takvim butonlarını etkileme)
+            const parentSelector = btn.closest('.period-selector');
+            parentSelector.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPeriod = days;
             loadStatistics();
-        };
+        }
+
+        // İstatistikleri yükle (API'den)
+        async function loadStatistics() {
+            showLoading('İstatistikler yükleniyor...');
+            
+            try {
+                const response = await API.get('/controls/stats.php');
+                
+                hideLoading();
+                
+                if (response.success) {
+                    displayStats(response);
+                } else {
+                    showError('İstatistikler yüklenemedi');
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('İstatistikler yüklenemedi:', error);
+                showError('İstatistikler yüklenirken hata oluştu');
+            }
+        }
+
+        // İstatistikleri göster
+        function displayStats(data) {
+            // Genel istatistikler
+            document.getElementById('totalControls').textContent = data.totalControls || 0;
+            document.getElementById('avgCompletion').textContent = (data.avgCompletionRate || 0) + '%';
+            document.getElementById('todayControls').textContent = 
+                `${data.todayControls ? data.todayControls.length : 0}/${data.activeBuildings || 0}`;
+            document.getElementById('activeStreak').textContent = data.weeklyControls || 0;
+
+            // Bina istatistikleri
+            displayBuildingStats(data.buildingStats || []);
+            
+            // Özet kartlar
+            displayBestPerformance(data.buildingStats || []);
+            displayAttentionAreas(data.buildingStats || []);
+            displayLastControls(data.buildingStats || []);
+        }
+
+        // Bina istatistiklerini göster
+        function displayBuildingStats(buildings) {
+            const buildingStatsContainer = document.getElementById('buildingStats');
+            const complianceContainer = document.getElementById('complianceStats');
+            
+            buildingStatsContainer.innerHTML = '';
+            complianceContainer.innerHTML = '';
+            
+            if (buildings.length === 0) {
+                buildingStatsContainer.innerHTML = '<p style="text-align:center;padding:20px;color:#999;">Henüz kontrol verisi yok</p>';
+                return;
+            }
+            
+            const maxCount = Math.max(...buildings.map(b => b.total_controls || 0));
+            
+            buildings.forEach(building => {
+                const count = building.total_controls || 0;
+                const completion = Math.round(building.avg_completion || 0);
+                const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                
+                // Kontrol sayısı kartı
+                const countRow = document.createElement('div');
+                countRow.className = 'building-stat-row';
+                countRow.innerHTML = `
+                    <div class="building-stat-name">${building.icon || '🏢'} ${building.name}</div>
+                    <div class="building-stat-bar">
+                        <div class="building-stat-fill" style="width: ${percentage}%">
+                            ${count} kontrol
+                        </div>
+                    </div>
+                `;
+                buildingStatsContainer.appendChild(countRow);
+                
+                // Uyumluluk kartı
+                const compRow = document.createElement('div');
+                compRow.className = 'building-stat-row';
+                compRow.innerHTML = `
+                    <div class="building-stat-name">${building.icon || '🏢'} ${building.name}</div>
+                    <div class="building-stat-bar">
+                        <div class="building-stat-fill" style="width: ${completion}%">
+                            %${completion}
+                        </div>
+                    </div>
+                `;
+                complianceContainer.appendChild(compRow);
+            });
+        }
+
+        // En iyi performans
+        function displayBestPerformance(buildings) {
+            const container = document.getElementById('bestPerformance');
+            if (buildings.length === 0) {
+                container.innerHTML = '<div class="summary-item"><span>Veri yok</span></div>';
+                return;
+            }
+            
+            const sorted = [...buildings].sort((a, b) => (b.avg_completion || 0) - (a.avg_completion || 0));
+            const best = sorted[0];
+            
+            container.innerHTML = `
+                <div class="summary-item">
+                    <span>${best.icon || '🏢'} ${best.name}</span>
+                    <strong style="color: #28a745;">%${Math.round(best.avg_completion || 0)}</strong>
+                </div>
+            `;
+        }
+
+        // Dikkat gereken alanlar
+        function displayAttentionAreas(buildings) {
+            const container = document.getElementById('attentionAreas');
+            container.innerHTML = '';
+            
+            const needsAttention = buildings.filter(b => (b.avg_completion || 0) < 90);
+            needsAttention.sort((a, b) => (a.avg_completion || 0) - (b.avg_completion || 0));
+            
+            if (needsAttention.length === 0) {
+                container.innerHTML = '<div class="summary-item"><span style="color: #28a745;">✓ Tüm binalar mükemmel!</span></div>';
+                return;
+            }
+            
+            needsAttention.forEach(building => {
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                item.innerHTML = `
+                    <span>${building.icon || '🏢'} ${building.name}</span>
+                    <strong style="color: #dc3545;">%${Math.round(building.avg_completion || 0)}</strong>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Son kontrol tarihleri
+        function displayLastControls(buildings) {
+            const container = document.getElementById('lastControls');
+            container.innerHTML = '';
+            
+            buildings.forEach(building => {
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                
+                if (building.last_control) {
+                    const date = new Date(building.last_control);
+                    const today = new Date();
+                    const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
+                    
+                    let timeText = '';
+                    if (diffDays === 0) timeText = 'Bugün';
+                    else if (diffDays === 1) timeText = 'Dün';
+                    else timeText = `${diffDays} gün önce`;
+                    
+                    item.innerHTML = `
+                        <span>${building.icon || '🏢'} ${building.name}</span>
+                        <strong>${timeText}</strong>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <span>${building.icon || '🏢'} ${building.name}</span>
+                        <strong style="color: #dc3545;">Kontrol yok</strong>
+                    `;
+                }
+                
+                container.appendChild(item);
+            });
+        }
+
+        // Kullanıcı performansı (henüz API desteklemiyor, boş bırakıyoruz)
+        const userPerfContainer = document.getElementById('userPerformanceStats');
+        if (userPerfContainer) {
+            userPerfContainer.innerHTML = '<p style="text-align:center;padding:20px;color:#999;">Kullanıcı bazlı istatistikler yakında eklenecek</p>';
+        }
+    </script>
+</body>
+</html>
 
         // Periyot değiştir
         function changePeriod(days, btn) {
@@ -601,6 +903,164 @@
                 
                 container.appendChild(item);
             });
+        }
+
+        // Sekme değiştirme
+        function showTab(tab, button) {
+            console.log('showTab çağrıldı:', tab);
+            
+            // Sadece ana sekme butonlarını güncelle (period butonlarını etkileme)
+            const parentSelector = button.closest('.period-selector');
+            parentSelector.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
+
+            // Sekmeleri göster/gizle
+            const statsTab = document.getElementById('statsTab');
+            const calendarTab = document.getElementById('calendarTab');
+            
+            console.log('statsTab:', statsTab, 'calendarTab:', calendarTab);
+            
+            if (tab === 'stats') {
+                if (statsTab) statsTab.style.display = 'block';
+                if (calendarTab) calendarTab.style.display = 'none';
+            } else if (tab === 'calendar') {
+                if (statsTab) statsTab.style.display = 'none';
+                if (calendarTab) calendarTab.style.display = 'block';
+                console.log('Takvim yükleniyor...');
+                loadCalendar();
+            }
+        }
+
+        // Takvim yükle
+        let currentCalendarYear = new Date().getFullYear();
+        
+        async function loadCalendar() {
+            console.log('loadCalendar başladı, yıl:', currentCalendarYear);
+            try {
+                document.getElementById('calendarYear').textContent = currentCalendarYear;
+                console.log('API çağrısı yapılıyor:', `/controls/calendar.php?year=${currentCalendarYear}`);
+                const response = await API.get(`/controls/calendar.php?year=${currentCalendarYear}`);
+                
+                console.log('API yanıtı:', response);
+                
+                if (response.success) {
+                    console.log('Takvim verisi:', response.data);
+                    displayCalendar(response.data);
+                } else {
+                    console.error('Takvim yüklenemedi:', response);
+                    alert('Takvim yüklenemedi: ' + (response.message || 'Bilinmeyen hata'));
+                }
+            } catch (error) {
+                console.error('Takvim yükleme hatası:', error);
+                alert('Takvim yükleme hatası: ' + error.message);
+            }
+        }
+
+        function changeCalendarYear(delta) {
+            currentCalendarYear += delta;
+            loadCalendar();
+        }
+
+        function displayCalendar(calendarData) {
+            console.log('displayCalendar çağrıldı, veri:', calendarData);
+            const container = document.getElementById('calendarContainer');
+            console.log('Container elementi:', container);
+            
+            if (!container) {
+                console.error('calendarContainer elementi bulunamadı!');
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            const monthNames = [
+                'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+            ];
+            const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Her ay için takvim oluştur
+            for (let month = 0; month < 12; month++) {
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'calendar-month';
+                
+                const title = document.createElement('div');
+                title.className = 'calendar-month-title';
+                title.textContent = monthNames[month];
+                monthDiv.appendChild(title);
+                
+                const grid = document.createElement('div');
+                grid.className = 'calendar-grid';
+                
+                // Gün başlıkları
+                dayNames.forEach(day => {
+                    const header = document.createElement('div');
+                    header.className = 'calendar-day-header';
+                    header.textContent = day;
+                    grid.appendChild(header);
+                });
+                
+                // Ayın ilk günü hangi gün başlıyor
+                const firstDay = new Date(currentCalendarYear, month, 1);
+                let startingDayOfWeek = firstDay.getDay();
+                // Türkiye'de hafta pazartesi başlar (0=Paz, 1=Pzt)
+                startingDayOfWeek = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+                
+                // Boş günler
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.className = 'calendar-day empty';
+                    grid.appendChild(emptyDay);
+                }
+                
+                // Ayın günleri
+                const daysInMonth = new Date(currentCalendarYear, month + 1, 0).getDate();
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${currentCalendarYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayData = calendarData.days[dateStr];
+                    const currentDate = new Date(currentCalendarYear, month, day);
+                    
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'calendar-day';
+                    dayDiv.textContent = day;
+                    
+                    // Bugün mü?
+                    if (currentDate.getTime() === today.getTime()) {
+                        dayDiv.classList.add('today');
+                    }
+                    
+                    // Gelecek mi?
+                    if (currentDate > today) {
+                        dayDiv.classList.add('future');
+                    } else if (dayData) {
+                        dayDiv.classList.add(dayData.status);
+                        dayDiv.title = `${dayData.completed_buildings}/${dayData.total_buildings} bina - %${Math.round(dayData.avg_completion || 0)} tamamlanma`;
+                        dayDiv.onclick = () => showDayDetails(dateStr, dayData);
+                    } else {
+                        dayDiv.classList.add('none');
+                        dayDiv.title = 'Kontrol yok';
+                    }
+                    
+                    grid.appendChild(dayDiv);
+                }
+                
+                monthDiv.appendChild(grid);
+                container.appendChild(monthDiv);
+            }
+        }
+
+        function showDayDetails(date, data) {
+            alert(`📅 ${date}\n\n` +
+                  `✅ Kontrol Edilen Bina: ${data.completed_buildings}/${data.total_buildings}\n` +
+                  `📊 Ortalama Tamamlanma: %${Math.round(data.avg_completion || 0)}\n` +
+                  `🎯 Durum: ${data.status === 'complete' ? 'Tam Kontrol' : 
+                              data.status === 'partial' ? 'Kısmi Kontrol' : 'Kontrol Yok'}`);
         }
     </script>
 </body>

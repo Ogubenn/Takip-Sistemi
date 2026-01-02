@@ -89,28 +89,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     try {
+        // Toplam checklist item sayısını al
+        $stmtTotal = $db->prepare("SELECT COUNT(*) as total FROM checklist_items WHERE building_id = ? AND is_active = 1");
+        $stmtTotal->execute([$input['buildingId']]);
+        $totalItems = $stmtTotal->fetch()['total'];
+        
         $checkedCount = count($input['checkedItems']);
-        $completionRate = $checkedCount > 0 ? 100 : 0;
+        $completionRate = $totalItems > 0 ? round(($checkedCount / $totalItems) * 100) : 0;
         
-        $stmt = $db->prepare("INSERT INTO control_records (building_id, user_id, control_date, checked_items, notes, checked_count, completion_rate) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $input['buildingId'],
-            $userId, // Can be NULL for anonymous
-            $input['controlDate'],
-            json_encode($input['checkedItems']),
-            $input['notes'] ?? '',
-            $checkedCount,
-            $completionRate
-        ]);
+        // Aynı gün ve bina için kayıt var mı kontrol et
+        $stmtCheck = $db->prepare("SELECT id FROM control_records WHERE building_id = ? AND control_date = ?");
+        $stmtCheck->execute([$input['buildingId'], $input['controlDate']]);
+        $existingRecord = $stmtCheck->fetch();
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Kontrol kaydı oluşturuldu',
-            'controlId' => $db->lastInsertId()
-        ]);
+        if ($existingRecord) {
+            // GÜNCELLE
+            $stmt = $db->prepare("UPDATE control_records SET 
+                user_id = ?, 
+                checked_items = ?, 
+                notes = ?, 
+                checked_count = ?, 
+                completion_rate = ?,
+                updated_at = NOW()
+                WHERE id = ?");
+            $stmt->execute([
+                $userId,
+                json_encode($input['checkedItems']),
+                $input['notes'] ?? '',
+                $checkedCount,
+                $completionRate,
+                $existingRecord['id']
+            ]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Kontrol kaydı güncellendi',
+                'controlId' => $existingRecord['id'],
+                'action' => 'updated'
+            ]);
+        } else {
+            // YENİ EKLE
+            $stmt = $db->prepare("INSERT INTO control_records (building_id, user_id, control_date, checked_items, notes, checked_count, completion_rate) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $input['buildingId'],
+                $userId,
+                $input['controlDate'],
+                json_encode($input['checkedItems']),
+                $input['notes'] ?? '',
+                $checkedCount,
+                $completionRate
+            ]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Kontrol kaydı oluşturuldu',
+                'controlId' => $db->lastInsertId(),
+                'action' => 'created'
+            ]);
+        }
     } catch (Exception $e) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Bu bina için bugün zaten kontrol kaydı var']);
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Sunucu hatası: ' . $e->getMessage()]);
     }
     exit;
 }

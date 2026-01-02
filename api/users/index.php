@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $user = requireAdmin();
     
     try {
-        $stmt = $db->query("SELECT id, username, full_name, email, role, is_active, created_at, updated_at FROM users ORDER BY created_at DESC");
+        $stmt = $db->query("SELECT id, username, full_name, email, role, is_active, last_login FROM users ORDER BY id DESC");
         $users = $stmt->fetchAll();
         
         echo json_encode([
@@ -35,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     try {
-        // Check if username exists
-        $stmt = $db->prepare("SELECT id FROM users WHERE username = ?");
+        // Check if username exists (case-insensitive)
+        $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?)");
         $stmt->execute([$input['username']]);
         if ($stmt->fetch()) {
             http_response_code(400);
@@ -44,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        // Check if email exists (if provided)
+        // Check if email exists (if provided, case-insensitive)
         if (!empty($input['email'])) {
-            $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?)");
             $stmt->execute([$input['email']]);
             if ($stmt->fetch()) {
                 http_response_code(400);
@@ -77,12 +77,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'user_id' => $userId
         ]);
     } catch (Exception $e) {
-        http_response_code(500);
-        // Check for duplicate username error
-        if (strpos($e->getMessage(), 'Duplicate entry') !== false && strpos($e->getMessage(), 'username') !== false) {
-            echo json_encode(['success' => false, 'message' => 'Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir kullanıcı adı seçin.']);
+        http_response_code(400);
+        $errorMessage = $e->getMessage();
+        
+        // Duplicate entry hatası için özel mesaj
+        if (strpos($errorMessage, 'Duplicate entry') !== false) {
+            if (strpos($errorMessage, 'username') !== false) {
+                echo json_encode(['success' => false, 'message' => 'Bu kullanıcı adı zaten kullanılıyor']);
+            } else if (strpos($errorMessage, 'email') !== false) {
+                echo json_encode(['success' => false, 'message' => 'Bu e-posta adresi zaten kullanılıyor']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Bu bilgiler zaten kayıtlı']);
+            }
         } else {
-            echo json_encode(['success' => false, 'message' => 'Sunucu hatası: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Sunucu hatası: ' . $errorMessage]);
         }
     }
     exit;
@@ -153,8 +161,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             $updates[] = "is_active = ?";
             $params[] = $input['is_active'];
         }
-        
-        $updates[] = "updated_at = NOW()";
         
         if (empty($updates)) {
             http_response_code(400);

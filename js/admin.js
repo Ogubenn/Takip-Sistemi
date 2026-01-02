@@ -202,14 +202,19 @@ window.onclick = function(event) {
 // Kullanıcıları getir
 async function getUsers() {
     try {
+        console.log('Kullanıcılar isteniyor...');
         const response = await API.get('/users/index.php', API.getToken());
+        console.log('API Yanıtı:', response);
         
         if (response.success) {
+            console.log('Kullanıcı sayısı:', response.users ? response.users.length : 0);
             return response.users || [];
         }
+        console.warn('API başarısız:', response);
         return [];
     } catch (error) {
         console.error('Kullanıcılar yüklenemedi:', error);
+        showError('Kullanıcılar yüklenirken hata: ' + error.message);
         return [];
     }
 }
@@ -217,11 +222,16 @@ async function getUsers() {
 // Kullanıcı listesini göster
 async function displayUsers() {
     const tbody = document.getElementById('usersTableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('usersTableBody elementi bulunamadı!');
+        return;
+    }
     
     showLoading('Kullanıcılar yükleniyor...');
     
     const users = await getUsers();
+    
+    console.log('Yüklenen kullanıcılar:', users);
     
     hideLoading();
     
@@ -366,32 +376,26 @@ async function saveUser(event) {
         } else {
             // Yeni ekle
             if (!password) {
+                hideLoading();
                 showError('Yeni kullanıcı için şifre gerekli!');
                 return;
             }
             response = await API.post('/users/index.php', data, API.getToken());
         }
         
+        hideLoading();
+        
         if (response.success) {
             showSuccess(userId ? 'Kullanıcı güncellendi!' : 'Kullanıcı eklendi!');
             closeModal('userModal');
             displayUsers();
-            // Dashboard'u otomatik güncelle
             loadDashboard();
         } else {
-            hideLoading();
             showError(response.message || 'İşlem başarısız');
         }
     } catch (error) {
         hideLoading();
-        // Daha kullanıcı dostu hata mesajı
-        let errorMsg = error.message;
-        if (errorMsg.includes('Duplicate entry') && errorMsg.includes('username')) {
-            errorMsg = 'Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir kullanıcı adı seçin.';
-        } else if (errorMsg.includes('Duplicate entry') && errorMsg.includes('email')) {
-            errorMsg = 'Bu e-posta adresi zaten kullanılıyor. Lütfen farklı bir e-posta adresi seçin.';
-        }
-        showError(errorMsg);
+        showError(error.message || 'İşlem sırasında bir hata oluştu');
     }
 }
 
@@ -487,12 +491,27 @@ async function editBuilding(buildingId) {
             document.getElementById('buildingDescription').value = building.description || '';
             document.getElementById('buildingActive').checked = building.is_active;
             
+            // Mevcut resmi göster
+            const previewDiv = document.getElementById('buildingImagePreview');
+            const previewImg = document.getElementById('buildingImagePreviewImg');
+            
+            if (building.image_path) {
+                previewImg.src = '/' + building.image_path;
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+            
+            // Dosya input'ı temizle
+            document.getElementById('buildingImage').value = '';
+            
             document.getElementById('buildingModalTitle').textContent = '✏️ Bina Düzenle';
             openModal('buildingModal');
         } else {
             showError('Bina bulunamadı!');
         }
     } catch (error) {
+        hideLoading();
         showError('Sunucu hatası: ' + error.message);
     }
 }
@@ -517,6 +536,48 @@ async function deleteBuilding(buildingId) {
             showError(response.message || 'Bina silinemedi');
         }
     } catch (error) {
+        hideLoading();
+        showError('Sunucu hatası: ' + error.message);
+    }
+}
+
+// Bina resmini sil
+async function removeBuildingImage() {
+    const buildingId = document.getElementById('buildingIdHidden').value;
+    
+    if (!buildingId) {
+        showError('Bina ID bulunamadı!');
+        return;
+    }
+    
+    if (!confirm('Bina resmini silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    showLoading('Resim siliniyor...');
+    
+    try {
+        const response = await fetch(`${API.baseURL}/buildings/upload.php?buildingId=${buildingId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${API.getToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        hideLoading();
+        
+        if (result.success) {
+            showSuccess('Resim silindi!');
+            document.getElementById('buildingImagePreview').style.display = 'none';
+            document.getElementById('buildingImage').value = '';
+        } else {
+            showError(result.message || 'Resim silinemedi');
+        }
+    } catch (error) {
+        hideLoading();
         showError('Sunucu hatası: ' + error.message);
     }
 }
@@ -531,6 +592,7 @@ async function saveBuilding(event) {
     const buildingIcon = document.getElementById('buildingIcon').value.trim();
     const buildingDescription = document.getElementById('buildingDescription').value.trim();
     const buildingActive = document.getElementById('buildingActive').checked;
+    const buildingImageFile = document.getElementById('buildingImage').files[0];
     
     if (!buildingId || !buildingName) {
         showError('ID ve isim zorunludur!');
@@ -559,15 +621,43 @@ async function saveBuilding(event) {
         }
         
         if (response.success) {
+            // Resim yükleme varsa
+            if (buildingImageFile) {
+                const formData = new FormData();
+                formData.append('buildingId', isEdit ? buildingIdHidden : buildingId);
+                formData.append('image', buildingImageFile);
+                
+                try {
+                    const uploadResponse = await fetch(`${API.baseURL}/buildings/upload.php`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${API.getToken()}`
+                        },
+                        body: formData
+                    });
+                    
+                    const uploadResult = await uploadResponse.json();
+                    
+                    if (!uploadResult.success) {
+                        showError('Bina kaydedildi ama resim yüklenemedi: ' + uploadResult.message);
+                    }
+                } catch (uploadError) {
+                    console.error('Resim yükleme hatası:', uploadError);
+                    showError('Bina kaydedildi ama resim yüklenemedi');
+                }
+            }
+            
             showSuccess(isEdit ? 'Bina güncellendi!' : 'Bina eklendi!');
             closeModal('buildingModal');
             displayBuildings();
             // Dashboard'u otomatik güncelle
             loadDashboard();
         } else {
+            hideLoading();
             showError(response.message || 'İşlem başarısız');
         }
     } catch (error) {
+        hideLoading();
         showError('Sunucu hatası: ' + error.message);
     }
 }
@@ -967,6 +1057,39 @@ async function initAdminPage() {
         const buildingForm = document.getElementById('buildingForm');
         if (buildingForm) {
             buildingForm.addEventListener('submit', saveBuilding);
+        }
+        
+        // Bina resim önizleme
+        const imageInput = document.getElementById('buildingImage');
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Dosya tipi kontrolü
+                    if (!file.type.startsWith('image/')) {
+                        showError('Lütfen sadece resim dosyası seçin!');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    // Dosya boyutu kontrolü (5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showError('Dosya boyutu 5MB\'dan büyük olamaz!');
+                        e.target.value = '';
+                        return;
+                    }
+                    
+                    // Önizleme göster
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const previewDiv = document.getElementById('buildingImagePreview');
+                        const previewImg = document.getElementById('buildingImagePreviewImg');
+                        previewImg.src = event.target.result;
+                        previewDiv.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
         }
     }
 }
