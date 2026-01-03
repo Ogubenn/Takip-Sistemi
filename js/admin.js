@@ -888,7 +888,7 @@ function displayChecklistItems(items) {
     if (items.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-state">
+                <td colspan="6" class="empty-state">
                     <div class="empty-state-icon">✅</div>
                     <h3>Henüz kontrol maddesi yok</h3>
                     <p>Yeni madde eklemek için yukarıdaki butonu kullanın.</p>
@@ -900,6 +900,9 @@ function displayChecklistItems(items) {
     
     tbody.innerHTML = items.map(item => `
         <tr>
+            <td style="text-align: center;">
+                <input type="checkbox" class="checklist-item-checkbox" data-id="${item.id}" onchange="updateBulkDeleteButton()">
+            </td>
             <td style="text-align: center; font-weight: bold; color: #666;">${item.item_order}</td>
             <td>
                 <strong>${item.building_name || item.building_id}</strong>
@@ -918,6 +921,9 @@ function displayChecklistItems(items) {
             </td>
         </tr>
     `).join('');
+    
+    // Toplu silme butonunu güncelle
+    updateBulkDeleteButton();
 }
 
 function filterChecklistItems() {
@@ -1043,11 +1049,88 @@ async function deleteChecklistItem(itemId) {
             showSuccess('Madde başarıyla silindi!');
             loadChecklistItems();
         } else {
-            showError(response.message || 'Madde silinemedi');
+            showError(response.message || 'Silme işlemi başarısız');
         }
     } catch (error) {
         showError('Sunucu hatası: ' + error.message);
     }
+}
+
+// Toplu seçme/kaldırma
+function toggleAllChecklistItems() {
+    const masterCheckbox = document.getElementById('checklistMasterCheckbox');
+    const checkboxes = document.querySelectorAll('.checklist-item-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+    
+    updateBulkDeleteButton();
+}
+
+// Toplu silme butonunu güncelle
+function updateBulkDeleteButton() {
+    const checkedBoxes = document.querySelectorAll('.checklist-item-checkbox:checked');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    const masterCheckbox = document.getElementById('checklistMasterCheckbox');
+    
+    if (bulkDeleteBtn) {
+        if (checkedBoxes.length > 0) {
+            bulkDeleteBtn.style.display = 'inline-block';
+            bulkDeleteBtn.textContent = `🗑️ Seçilileri Sil (${checkedBoxes.length})`;
+        } else {
+            bulkDeleteBtn.style.display = 'none';
+        }
+    }
+    
+    // Master checkbox'ı güncelle
+    if (masterCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.checklist-item-checkbox');
+        masterCheckbox.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
+    }
+}
+
+// Toplu silme
+async function bulkDeleteChecklistItems() {
+    const checkedBoxes = document.querySelectorAll('.checklist-item-checkbox:checked');
+    const itemIds = Array.from(checkedBoxes).map(cb => cb.dataset.id);
+    
+    if (itemIds.length === 0) {
+        showError('Lütfen silinecek maddeleri seçin!');
+        return;
+    }
+    
+    if (!confirm(`${itemIds.length} adet kontrol maddesini silmek istediğinizden emin misiniz?`)) {
+        return;
+    }
+    
+    showLoading(`${itemIds.length} madde siliniyor...`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const itemId of itemIds) {
+        try {
+            const response = await API.delete(`/checklist/index.php?id=${itemId}`, API.getToken());
+            if (response.success) {
+                successCount++;
+            } else {
+                errorCount++;
+            }
+        } catch (error) {
+            errorCount++;
+        }
+    }
+    
+    hideLoading();
+    
+    if (errorCount === 0) {
+        showSuccess(`${successCount} madde başarıyla silindi!`);
+    } else {
+        showError(`${successCount} madde silindi, ${errorCount} madde silinemedi.`);
+    }
+    
+    loadChecklistItems();
 }
 
 // ============================================

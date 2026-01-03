@@ -1,0 +1,109 @@
+/**
+ * GECMIS.CSS - Geçmiş Kayıtlar Sayfası Özel Stilleri
+ */
+
+.history-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* Filters */
+.filters {
+    background: var(--background-light);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Record Stats */
+.record-stats {
+    display: flex;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+    margin: var(--spacing-md) 0;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+    gap: var(--spacing-xs);
+}
+
+.stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-medium);
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: var(--font-size-lg);
+}
+
+/* Record Notes */
+.record-notes {
+    background: #fff9e6;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--warning-color);
+    margin-top: var(--spacing-md);
+}
+
+.record-notes h4 {
+    color: var(--text-dark);
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-xs);
+}
+
+.record-notes p {
+    color: var(--text-medium);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+/* Detail List */
+.detail-list {
+    margin-top: var(--spacing-md);
+}
+
+.detail-item {
+    padding: var(--spacing-xs) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.detail-item.checked {
+    color: var(--success-color);
+}
+
+.detail-item.unchecked {
+    color: var(--danger-color);
+}
+
+/* No Records */
+.no-records {
+    text-align: center;
+    padding: var(--spacing-xxl);
+}
+
+.no-records-icon {
+    font-size: 5em;
+    opacity: 0.3;
+    margin-bottom: var(--spacing-lg);
+}

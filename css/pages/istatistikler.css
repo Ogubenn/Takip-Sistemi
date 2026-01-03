@@ -1,0 +1,145 @@
+/**
+ * ISTATISTIKLER.CSS - İstatistikler Sayfası Özel Stilleri
+ */
+
+.stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* Stat Box */
+.stat-box {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    color: white;
+    text-align: center;
+    transition: transform var(--transition-normal);
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+}
+
+/* Building Stat Row */
+.building-stat-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+}
+
+.building-stat-name {
+    flex: 0 0 200px;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+/* Period Selector */
+.period-selector {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+/* Compliance Indicator */
+.compliance-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-round);
+    margin-right: var(--spacing-xs);
+}
+
+.compliance-indicator.excellent {
+    background: var(--success-color);
+}
+
+.compliance-indicator.good {
+    background: var(--warning-color);
+}
+
+.compliance-indicator.poor {
+    background: var(--danger-color);
+}
+
+/* Calendar Month */
+.calendar-month {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-month-title {
+    text-align: center;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Calendar Day Header */
+.calendar-day-header {
+    text-align: center;
+    font-weight: 600;
+    padding: var(--spacing-xs);
+    color: var(--text-medium);
+    font-size: var(--font-size-sm);
+}
+
+/* Calendar Day */
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+    font-weight: 500;
+}
+
+.calendar-day:hover:not(.empty):not(.future) {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+    z-index: 1;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.calendar-day.future {
+    background: var(--background-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    cursor: not-allowed;
+}
+
+.calendar-day.complete {
+    background: var(--success-color);
+    color: white;
+}
+
+.calendar-day.partial {
+    background: var(--warning-color);
+    color: var(--text-dark);
+}
+
+.calendar-day.none {
+    background: var(--danger-color);
+    color: white;
+}
+
+.calendar-day.today {
+    border: 3px solid var(--primary-color);
+    font-weight: 700;
+}

@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/admin.css">
     <script src="config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
 </head>
 <body class="admin-body">
     
@@ -398,6 +400,9 @@
                 <div class="section-header">
                     <h2 class="section-title">Kontrol Maddeleri Listesi</h2>
                     <div class="section-actions">
+                        <button id="bulkDeleteBtn" class="btn btn-danger" onclick="bulkDeleteChecklistItems()" style="display: none; margin-right: 10px;">
+                            🗑️ Seçilileri Sil (0)
+                        </button>
                         <select id="checklistBuildingFilter" onchange="filterChecklistItems()" style="padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
                             <option value="">Tüm Binalar</option>
                         </select>
@@ -406,6 +411,9 @@
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width: 40px; text-align: center;">
+                                <input type="checkbox" id="checklistMasterCheckbox" onchange="toggleAllChecklistItems()" title="Tümünü Seç/Kaldır">
+                            </th>
                             <th style="width: 50px;">Sıra</th>
                             <th>Bina</th>
                             <th>Kontrol Maddesi</th>
@@ -574,9 +582,9 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="buildingIcon">🎨 İkon (Emoji) *</label>
-                        <input type="text" id="buildingIcon" placeholder="Örn: ⚙️" required maxlength="2">
-                        <small style="color: #666;">Emoji seçmek için Windows + . tuşuna basın</small>
+                        <label for="buildingIcon">🎨 İkon (Emoji) - Opsiyonel</label>
+                        <input type="text" id="buildingIcon" placeholder="Boş bırakılırsa 🏢 kullanılır" maxlength="2">
+                        <small style="color: #666;">Emoji seçmek için Windows + . tuşuna basın (varsayılan: 🏢)</small>
                     </div>
                     
                     <div class="form-group">

@@ -1,0 +1,178 @@
+/**
+ * KONTROL.CSS - Kontrol Sayfası Özel Stilleri
+ */
+
+/* ============================================
+   CONTROL PAGE LAYOUT
+   ============================================ */
+.control-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* ============================================
+   CONTROL BANNER
+   ============================================ */
+.control-banner {
+    background: linear-gradient(135deg, var(--dark-blue) 0%, var(--accent-color) 100%);
+    color: white;
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.control-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+    animation: pulse 3s ease-in-out infinite;
+}
+
+.control-banner h1,
+.control-banner p {
+    position: relative;
+    z-index: 1;
+}
+
+.control-banner h1 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-xs);
+}
+
+.control-banner p {
+    opacity: 0.9;
+    font-size: var(--font-size-lg);
+    margin: 0;
+}
+
+.date-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+    margin-top: var(--spacing-sm);
+}
+
+/* ============================================
+   CHECK ITEMS
+   ============================================ */
+.check-item {
+    background: var(--background-light);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    transition: all var(--transition-normal);
+    border: 2px solid transparent;
+}
+
+.check-item:hover {
+    background: #e3f2fd;
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.check-item input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.check-item label {
+    flex: 1;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.check-item input[type="checkbox"]:checked + label {
+    color: var(--success-color);
+    font-weight: 600;
+    text-decoration: line-through;
+}
+
+/* ============================================
+   NOTES SECTION
+   ============================================ */
+.notes-section {
+    background: var(--background-light);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-lg);
+}
+
+.notes-section h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
+    color: var(--text-dark);
+}
+
+.notes-section textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: var(--spacing-md);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    resize: vertical;
+    transition: all var(--transition-fast);
+}
+
+.notes-section textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ============================================
+   ACTION BUTTONS
+   ============================================ */
+.action-buttons {
+    padding: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+    .control-page {
+        padding: var(--spacing-sm);
+    }
+    
+    .control-banner {
+        padding: var(--spacing-lg);
+    }
+    
+    .control-banner h1 {
+        font-size: var(--font-size-xl);
+    }
+    
+    .check-item {
+        padding: var(--spacing-sm);
+    }
+    
+    .action-buttons .btn {
+        min-width: 100%;
+    }
+}

@@ -1,0 +1,43 @@
+/**
+ * QR-KODLAR.CSS - QR Kodlar Sayfası Özel Stilleri
+ */
+
+.qr-container {
+    background: white;
+    padding: var(--spacing-xxl);
+    border-radius: var(--radius-xxl);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.print-btn {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) 25px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    transition: background var(--transition-fast);
+}
+
+.print-btn:hover {
+    background: var(--primary-dark);
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    .qr-box {
+        page-break-inside: avoid;
+        border: 2px solid var(--border-color);
+    }
+}
